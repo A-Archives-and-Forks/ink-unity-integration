@@ -24,6 +24,9 @@ namespace Ink.UnityIntegration {
 		public static bool compileImmediatelyOnImport = false;
 		// Recompiles any ink files as a result of an ink file (re)import
 		private static void OnPostprocessAllAssets (string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
+			// Reassurance log: the InkImporter compiles on import, so report which ink files were (re)imported.
+			// This preserves the peace-of-mind logging the old queue-based compiler used to print.
+			LogImportedInkFiles(importedAssets);
 			if(!legacyAutoCompileEnabled) return;
 			if(disabled) return;
 			if(deletedAssets.Length > 0) {
@@ -38,6 +41,13 @@ namespace Ink.UnityIntegration {
 				OnImportAssets(importedAssetsThatWerentRenames);
 			}
             InkLibrary.Clean();
+		}
+
+		// Logs a concise summary of (re)imported ink files. The InkImporter does the actual compilation.
+		static void LogImportedInkFiles (string[] importedAssets) {
+			var inkFiles = importedAssets.Where(InkEditorUtils.IsInkFile).ToArray();
+			if(inkFiles.Length == 0) return;
+			Debug.Log($"Ink import complete ({inkFiles.Length} file{(inkFiles.Length == 1 ? "" : "s")}):\n{string.Join("\n", inkFiles)}");
 		}
 
 		private static void OnDeleteAssets (string[] deletedAssets) {
