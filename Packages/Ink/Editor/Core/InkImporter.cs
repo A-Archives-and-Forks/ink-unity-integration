@@ -41,7 +41,7 @@ namespace Ink.UnityIntegration {
             try { text = File.ReadAllText(assetPath); }
             catch { return; }
             var dir = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
-            foreach (var include in InkFileMetadata.InkIncludeParser.ParseIncludes(text)) {
+            foreach (var include in InkIncludeParser.ParseIncludes(text)) {
                 var includePath = NormalizeAssetPath(dir, include);
                 if (!results.Contains(includePath)) results.Add(includePath);
                 CollectIncludes(includePath, results, visited);
@@ -105,7 +105,7 @@ namespace Ink.UnityIntegration {
                 // Belt-and-braces: also register direct includes (GatherDependenciesFromSourceFile
                 // already declares the full recursive set for import ordering + reimport).
                 var dir = Path.GetDirectoryName(ctx.assetPath)?.Replace('\\', '/');
-                foreach (var include in InkFileMetadata.InkIncludeParser.ParseIncludes(inputString)) {
+                foreach (var include in InkIncludeParser.ParseIncludes(inputString)) {
                     ctx.DependsOnSourceAsset(NormalizeAssetPath(dir, include));
                 }
             }
