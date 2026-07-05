@@ -58,24 +58,42 @@ namespace Ink.UnityIntegration {
 			InkLibrary.Rebuild();
 		}
 
-		[MenuItem("Assets/Recompile Ink", false, 201)]
+		[System.Obsolete("Use ForceRecompileAllInkFilesAsync() instead.")]
 		public static void RecompileAll() {
-			var filesToRecompile = InkLibrary.FilesCompiledByRecompileAll().ToArray();
-			string logString = filesToRecompile.Any() ? 
-				"Recompile All will compile "+string.Join(", ", filesToRecompile.Select(x => Path.GetFileName(x.filePath)).ToArray()) :
-				"No valid ink found. Note that only files with 'Compile Automatic' checked are compiled if not set to compile all files automatically in InkSettings file.";
-			Debug.Log(logString);
-			InkCompiler.CompileInk(filesToRecompile);
+			ForceRecompileAllInkFilesAsync();
 		}
 
-        public static void RecompileAllImmediately() {
-            var filesToRecompile = InkLibrary.FilesCompiledByRecompileAll().ToArray();
-            string logString = filesToRecompile.Any() ? 
-                                   "Recompile All Immediately will compile "+string.Join(", ", filesToRecompile.Select(x => Path.GetFileName(x.filePath)).ToArray()) :
-                                   "No valid ink found. Note that only files with 'Compile Automatic' checked are compiled if not set to compile all files automatically in InkSettings file.";
-            Debug.Log(logString);
-            InkCompiler.CompileInk(filesToRecompile, true, null);
-        }
+		[System.Obsolete("Use ForceRecompileAllInkFilesSync() instead.")]
+		public static void RecompileAllImmediately() {
+			ForceRecompileAllInkFilesSync();
+		}
+
+		// Reimports every ink file, which recompiles all master files via the InkImporter.
+		// Useful when a ScriptedImporter didn't fire (as with AssetPostProcessors, this can occasionally
+		// happen on external file changes) or when you want to be certain everything is freshly imported.
+		[MenuItem("Assets/Recompile All Ink Files (Async)", false, 202)]
+		public static void ForceRecompileAllInkFilesAsync() {
+			ReimportAllInkFiles(ImportAssetOptions.Default);
+		}
+
+		// As above, but does not return until all imports have completed. Suitable for headless/build scripts.
+		[MenuItem("Assets/Recompile All Ink Files (Sync)", false, 201)]
+		public static void ForceRecompileAllInkFilesSync() {
+			ReimportAllInkFiles(ImportAssetOptions.ForceSynchronousImport);
+		}
+
+		static void ReimportAllInkFiles(ImportAssetOptions options) {
+			var guids = AssetDatabase.FindAssets("glob:\"*.ink\"");
+			AssetDatabase.StartAssetEditing();
+			try {
+				foreach (var guid in guids) {
+					var path = AssetDatabase.GUIDToAssetPath(guid);
+					AssetDatabase.ImportAsset(path, options | ImportAssetOptions.ForceUpdate);
+				}
+			} finally {
+				AssetDatabase.StopAssetEditing();
+			}
+		}
 
 
 
