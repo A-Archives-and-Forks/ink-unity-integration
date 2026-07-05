@@ -1,3 +1,19 @@
+## Version 2.0.0 (5th July 2026):
+Ink files are now imported directly by a Unity ScriptedImporter, replacing the old system of generating a separate compiled .json file for each .ink.
+
+- ⚠️ Breaking: a `.ink` file now imports into an `InkFile` asset that holds the compiled story. No separate `.json` `TextAsset` is generated. Reference `InkFile` in your code and use `new Story(inkFile.storyJson)`.
+- ⚠️ Breaking: the minimum supported Unity version is now 2022.3 LTS.
+- Master files: a `.ink` file is compiled to a runnable story only when "Compile As Master File" is enabled in its import settings. Files that are only INCLUDEd by others no longer try (and fail) to compile standalone.
+- Includes are tracked via Unity's dependency system, so editing a (nested) include reimports the master files that use it.
+- Compiler errors, warnings and todos appear on the asset's import inspector and in the console.
+- Removed the InkLibrary, the InkCompiler compilation queue and the old auto-compiler; Unity's import pipeline handles scheduling.
+
+### Migrating from 1.x — see MIGRATION.md
+1. Update to Unity 2022.3 or newer.
+2. For each standalone story, select its `.ink` file and tick **Compile As Master File** in the Inspector.
+3. Repoint references from the generated `.json` `TextAsset` to the `.ink`'s `InkFile`, and replace `new Story(textAsset.text)` with `new Story(inkFile.storyJson)`.
+4. Delete the now-unused generated `.json` files.
+
 ## Version 1.3.0 (5th July 2026):
 - Updated Ink to 1.2.1
 - ⚠️ The minimum supported Unity version is now 2022.3 LTS
