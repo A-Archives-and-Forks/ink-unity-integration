@@ -97,7 +97,8 @@ public class BasicInkExample : MonoBehaviour {
 
 	[SerializeField]
 	private TextAsset inkJSONAsset = null;
-	public Story story;
+	// Created at runtime from the ink JSON; Story isn't serializable so it isn't persisted by Unity.
+	[NonSerialized] public Story story;
 
 	[SerializeField]
 	private Canvas canvas = null;
