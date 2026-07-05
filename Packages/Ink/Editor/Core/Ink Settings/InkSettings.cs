@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// Holds a reference to an InkFile object for every .ink file detected in the Assets folder.
+/// Holds a reference to an InkFileMetadata object for every .ink file detected in the Assets folder.
 /// Provides helper functions to easily obtain these files.
 /// ScriptableSingleton doesn't reload when the backing file changes, which means if you pull changes via source control you need to make unity recompile before it'll load the change.
 /// </summary>
@@ -90,7 +90,7 @@ namespace Ink.UnityIntegration {
 			return new SerializedObject(instance);
 		}
         
-		public bool ShouldCompileInkFileAutomatically (InkFile inkFile) {
+		public bool ShouldCompileInkFileAutomatically (InkFileMetadata inkFile) {
 			return compileAllFilesAutomatically || (inkFile.isMaster && filesToCompileAutomatically.Contains(inkFile.inkAsset));
 		}
 

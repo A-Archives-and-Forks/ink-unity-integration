@@ -309,7 +309,7 @@ namespace Ink.UnityIntegration {
 		/// Opens an ink file in the associated editor at the correct line number.
 		/// TODO - If the editor is inky, this code should load the master file, but immediately show the correct child file at the correct line.
 		/// </summary>
-		public static void OpenInEditor (InkFile inkFile, InkCompilerLog log) {
+		public static void OpenInEditor (InkFileMetadata inkFile, InkCompilerLog log) {
 			var targetFilePath = log.GetAbsoluteFilePath(inkFile);
 			// EditorUtility.OpenWithDefaultApp(targetFilePath);
 			AssetDatabase.OpenAsset(inkFile.inkAsset, log.lineNumber);

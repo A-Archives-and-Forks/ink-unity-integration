@@ -17,7 +17,7 @@ namespace Ink.UnityIntegration
 			this.lineNumber = lineNumber;
 		}
 
-		public string GetAbsoluteFilePath (InkFile masterInkFile) {
+		public string GetAbsoluteFilePath (InkFileMetadata masterInkFile) {
 			Debug.Log(masterInkFile.absoluteFolderPath);
 			Debug.Log(relativeFilePath);
 			return System.IO.Path.Combine(masterInkFile.absoluteFolderPath, relativeFilePath);

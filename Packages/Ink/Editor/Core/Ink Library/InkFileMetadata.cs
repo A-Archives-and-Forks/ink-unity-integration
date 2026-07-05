@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Ink.UnityIntegration {
 	// Helper class for ink files that maintains INCLUDE connections between ink files
 	[Serializable]
-	public class InkFile {
+	public class InkFileMetadata {
 		// Master files are those that can be compiled
 		public bool isMaster => !isIncludeFile || isMarkedToCompileAsMasterFile;
 		// Typically master files are simply those that aren't INCLUDED by another file, but they can also be marked to master files.
@@ -138,14 +138,14 @@ namespace Ink.UnityIntegration {
 		public DateTime lastEditDate => File.GetLastWriteTime(absoluteFilePath);
 
 		public List<DefaultAsset> masterInkAssets = new List<DefaultAsset>();
-		public IEnumerable<InkFile> masterInkFiles {
+		public IEnumerable<InkFileMetadata> masterInkFiles {
 			get {
 				foreach(var masterInkAsset in masterInkAssets) {
 					yield return InkLibrary.GetInkFileWithFile(masterInkAsset);
 				}
 			}
 		}
-		public IEnumerable<InkFile> masterInkFilesIncludingSelf {
+		public IEnumerable<InkFileMetadata> masterInkFilesIncludingSelf {
 			get {
 				// A file can be both a master file AND be included by many other files. Return all the master files fitting this description.
 				if(isMaster) yield return this;
@@ -165,9 +165,9 @@ namespace Ink.UnityIntegration {
 		// The asset references for the included files. Unlike localIncludePaths this contains include files
 		public List<DefaultAsset> includes = new List<DefaultAsset>();
 		// The InkFiles of the includes of this file
-		public List<InkFile> includesInkFiles {
+		public List<InkFileMetadata> includesInkFiles {
 			get {
-				List<InkFile> _includesInkFiles = new List<InkFile>();
+				List<InkFileMetadata> _includesInkFiles = new List<InkFileMetadata>();
 				foreach(var child in includes) {
 					if(child == null) {
 						Debug.LogError("Error compiling ink: Ink file include in "+filePath+" is null.", inkAsset);
@@ -183,7 +183,7 @@ namespace Ink.UnityIntegration {
 
 
 
-		public InkFile (DefaultAsset inkAsset) {
+		public InkFileMetadata (DefaultAsset inkAsset) {
 			Debug.Assert(inkAsset != null);
 			this.inkAsset = inkAsset;
 			
@@ -295,7 +295,7 @@ namespace Ink.UnityIntegration {
 
 		
 		public override string ToString () {
-			return $"[InkFile: filePath={filePath}]";
+			return $"[InkFileMetadata: filePath={filePath}]";
 		} 
 	}
 }

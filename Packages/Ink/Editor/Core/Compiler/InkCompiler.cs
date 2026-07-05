@@ -32,7 +32,7 @@ namespace Ink.UnityIntegration {
 		}
 
 		// This runs once when the compilation stack completes.
-		public delegate void OnCompleteInkCompliationStackEvent (InkFile[] inkFiles);
+		public delegate void OnCompleteInkCompliationStackEvent (InkFileMetadata[] inkFiles);
 		public static event OnCompleteInkCompliationStackEvent OnCompileInk;
 
 		
@@ -49,10 +49,10 @@ namespace Ink.UnityIntegration {
 		}
 
 		
-		public static void CompileInk (params InkFile[] inkFiles) {
+		public static void CompileInk (params InkFileMetadata[] inkFiles) {
             CompileInk(inkFiles, false, null);
         }
-		public static void CompileInk (InkFile[] inkFiles, bool immediate, Action onComplete = null) {
+		public static void CompileInk (InkFileMetadata[] inkFiles, bool immediate, Action onComplete = null) {
 			if(inkFiles == null || inkFiles.Length == 0) return;
 			if(!disallowedAutoRefresh) {
 				disallowedAutoRefresh = true;
@@ -92,7 +92,7 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-        public static void RemoveFromPendingCompilationStack (InkFile inkFile) {
+        public static void RemoveFromPendingCompilationStack (InkFileMetadata inkFile) {
             bool anyChange = false;
 			anyChange = instance.pendingCompilationStack.Remove(inkFile.filePath) || anyChange;
             foreach(var includeFile in inkFile.includesInkFiles) {
@@ -126,7 +126,7 @@ namespace Ink.UnityIntegration {
 			return null;
 		}
 
-		public static bool IsInkFileOnCompilationStack (InkFile inkFile) {
+		public static bool IsInkFileOnCompilationStack (InkFileMetadata inkFile) {
 			foreach(var compilationStackItem in instance.compilationStack) {
 				if(compilationStackItem.inkFile == inkFile) 
 					return true;
@@ -135,8 +135,8 @@ namespace Ink.UnityIntegration {
 		}
 
 		// Find all the master ink files in a list of assets given by path.
-		public static List<InkFile> GetUniqueMasterInkFilesToCompile (List<string> importedInkAssets) {
-			List<InkFile> masterInkFiles = new List<InkFile>();
+		public static List<InkFileMetadata> GetUniqueMasterInkFilesToCompile (List<string> importedInkAssets) {
+			List<InkFileMetadata> masterInkFiles = new List<InkFileMetadata>();
 			foreach (var importedAssetPath in importedInkAssets) {
                 foreach(var masterInkFile in GetMasterFilesIncludingInkAssetPath(importedAssetPath)) {
 					if (!masterInkFiles.Contains(masterInkFile) && InkSettings.instance.ShouldCompileInkFileAutomatically(masterInkFile)) {
@@ -147,13 +147,13 @@ namespace Ink.UnityIntegration {
 			return masterInkFiles;
 			
 			// An ink file might actually have several owners! Return them all.
-			IEnumerable<InkFile> GetMasterFilesIncludingInkAssetPath (string importedAssetPath) {
-				InkFile inkFile = InkLibrary.GetInkFileWithPath(importedAssetPath);
+			IEnumerable<InkFileMetadata> GetMasterFilesIncludingInkAssetPath (string importedAssetPath) {
+				InkFileMetadata inkFile = InkLibrary.GetInkFileWithPath(importedAssetPath);
 				// Trying to catch a rare (and not especially important) bug that seems to happen occasionally when opening a project
 				// It's probably this - I've noticed it before in another context.
 				Debug.Assert(InkSettings.instance != null, "No ink settings file. This is a bug. For now you should be able to fix this via Assets > Rebuild Ink Library");
 				// I've caught it here before
-				Debug.Assert(inkFile != null, "No internal InkFile reference at path "+importedAssetPath+". This is a bug. For now you can fix this via Assets > Rebuild Ink Library");
+				Debug.Assert(inkFile != null, "No internal InkFileMetadata reference at path "+importedAssetPath+". This is a bug. For now you can fix this via Assets > Rebuild Ink Library");
 				Debug.Assert(inkFile != null);
 				return inkFile.masterInkFilesIncludingSelf;
 			}
@@ -220,7 +220,7 @@ namespace Ink.UnityIntegration {
 		class CompilationStackItem {
 			public CompilationStackItemState state = CompilationStackItemState.Queued;
 			public bool immediate;
-			public InkFile inkFile;
+			public InkFileMetadata inkFile;
 			public string compiledJson;
 			public string inkAbsoluteFilePath;
 			public string jsonAbsoluteFilePath;
@@ -365,13 +365,13 @@ namespace Ink.UnityIntegration {
 		/// Starts a System.Process that compiles a master ink file, creating a playable JSON file that can be parsed by the Ink.Story class
 		/// </summary>
 		/// <param name="inkFile">Ink file.</param>
-		private static void CompileInkInternal (InkFile inkFile, bool immediate) {
+		private static void CompileInkInternal (InkFileMetadata inkFile, bool immediate) {
 			if(inkFile == null) {
 				Debug.LogError("Tried to compile ink file but input was null.");
 				return;
 			}
 			if(!inkFile.isMaster)
-				Debug.LogWarning("Compiling InkFile which is an include. Any file created is likely to be invalid. Did you mean to call CompileInk on inkFile.master?");
+				Debug.LogWarning("Compiling InkFileMetadata which is an include. Any file created is likely to be invalid. Did you mean to call CompileInk on inkFile.master?");
 
 			// If we've not yet locked C# compilation do so now
 			if (!hasLockedUnityCompilation)
@@ -548,7 +548,7 @@ namespace Ink.UnityIntegration {
 			AssetDatabase.StopAssetEditing();
 
 
-			// Sets output info for each InkFile (todos, warnings and errors); produces and fires the post-compliation log
+			// Sets output info for each InkFileMetadata (todos, warnings and errors); produces and fires the post-compliation log
 			bool errorsFound = false;
 			StringBuilder filesCompiledLog = new StringBuilder("Files compiled:");
 			foreach (var compilingFile in compilationStack) {
@@ -645,7 +645,7 @@ namespace Ink.UnityIntegration {
             onCompleteActions.Clear();
 			
 			if (OnCompileInk != null) {
-				InkFile[] inkFilesCompiled = new InkFile[compilationStack.Count];
+				InkFileMetadata[] inkFilesCompiled = new InkFileMetadata[compilationStack.Count];
 				for (int i = 0; i < compilationStack.Count; i++) {
 					inkFilesCompiled[i] = compilationStack[i].inkFile;
 				}

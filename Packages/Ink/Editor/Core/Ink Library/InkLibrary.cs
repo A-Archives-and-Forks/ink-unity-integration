@@ -7,12 +7,12 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// Holds a reference to an InkFile object for every .ink file detected in the Assets folder.
+/// Holds a reference to an InkFileMetadata object for every .ink file detected in the Assets folder.
 /// Provides helper functions to easily obtain these files.
 /// </summary>
 namespace Ink.UnityIntegration {
     [FilePath("Library/asset", FilePathAttribute.Location.ProjectFolder)]
-	public class InkLibrary : ScriptableSingleton<InkLibrary>, IEnumerable<InkFile> {
+	public class InkLibrary : ScriptableSingleton<InkLibrary>, IEnumerable<InkFileMetadata> {
         // Ink version. This should really come from the core ink code.
 		public static System.Version inkVersionCurrent = new System.Version(1,2,0);
 		public static System.Version unityIntegrationVersionCurrent = new System.Version(1,3,0);
@@ -31,22 +31,22 @@ namespace Ink.UnityIntegration {
             }
         }
 
-		public List<InkFile> inkLibrary = new List<InkFile>();
-		Dictionary<DefaultAsset, InkFile> inkLibraryDictionary = new Dictionary<DefaultAsset, InkFile>();
+		public List<InkFileMetadata> inkLibrary = new List<InkFileMetadata>();
+		Dictionary<DefaultAsset, InkFileMetadata> inkLibraryDictionary = new Dictionary<DefaultAsset, InkFileMetadata>();
 		
         public int Count {
             get {
                 return inkLibrary.Count;
             }
         }
-        public InkFile this[int key] {
+        public InkFileMetadata this[int key] {
             get {
                 return inkLibrary[key];
             } set {
                 inkLibrary[key] = value;
             }
         }
-        IEnumerator<InkFile> IEnumerable<InkFile>.GetEnumerator() {
+        IEnumerator<InkFileMetadata> IEnumerable<InkFileMetadata>.GetEnumerator() {
             return inkLibrary.GetEnumerator();
         }
 
@@ -118,7 +118,7 @@ namespace Ink.UnityIntegration {
 		public static bool Clean () {
             bool wasDirty = false;
 			for (int i = instance.Count - 1; i >= 0; i--) {
-				InkFile inkFile = instance[i];
+				InkFileMetadata inkFile = instance[i];
 				if (inkFile.inkAsset == null) {
 					RemoveAt(i);
                     wasDirty = true;
@@ -127,7 +127,7 @@ namespace Ink.UnityIntegration {
             return wasDirty;
 		}
 
-        static void Add (InkFile inkFile) {
+        static void Add (InkFileMetadata inkFile) {
             instance.inkLibrary.Add(inkFile);
 			SortInkLibrary();
 			instance.inkLibraryDictionary.Add(inkFile.inkAsset, inkFile);
@@ -159,9 +159,9 @@ namespace Ink.UnityIntegration {
 			// Add any new file connections (if any are found it replaces the old library entirely)
 			string[] inkFilePaths = GetAllInkFilePaths();
 			bool inkLibraryChanged = false;
-			List<InkFile> newInkLibrary = new List<InkFile>(inkFilePaths.Length);
+			List<InkFileMetadata> newInkLibrary = new List<InkFileMetadata>(inkFilePaths.Length);
 			for (int i = 0; i < inkFilePaths.Length; i++) {
-				InkFile inkFile = GetInkFileWithAbsolutePath(inkFilePaths [i]);
+				InkFileMetadata inkFile = GetInkFileWithAbsolutePath(inkFilePaths [i]);
 				// If the ink library doesn't have a representation for this file, then make one 
                 if(inkFile == null) {
 					inkLibraryChanged = true;
@@ -179,7 +179,7 @@ namespace Ink.UnityIntegration {
 							continue;
 						}
 					}
-					inkFile = new InkFile(inkFileAsset);
+					inkFile = new InkFileMetadata(inkFileAsset);
 				}
                 newInkLibrary.Add(inkFile);
 			}
@@ -191,7 +191,7 @@ namespace Ink.UnityIntegration {
 
 			RebuildInkFileConnections();
 
-			foreach (InkFile inkFile in instance.inkLibrary) inkFile.FindCompiledJSONAsset();
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) inkFile.FindCompiledJSONAsset();
 
 			// if(InkSettings.instance.handleJSONFilesAutomatically) DeleteUnwantedCompiledJSONAssets();
 			
@@ -205,14 +205,14 @@ namespace Ink.UnityIntegration {
 		// To be used when adding .ink files. 
 		// This process is typically handled by CreateOrReadUpdatedInkFiles, called from InkPostProcessor; but it may be desired to remove/disable the post processor.
 		// In those cases, this is the correct way to ensure the ink library correctly processes the file.
-		public static InkFile AddNewInkFile (DefaultAsset asset) {
+		public static InkFileMetadata AddNewInkFile (DefaultAsset asset) {
 			Debug.Assert(asset != null);
 			// First, check if we've already got it in the library!
 			foreach(var _inkFile in instance)
 				if(_inkFile.inkAsset == asset)
 					return _inkFile;
 			// If not
-			var inkFile = new InkFile(asset);
+			var inkFile = new InkFileMetadata(asset);
 			inkFile.FindCompiledJSONAsset();
 			Add(inkFile);
 			RebuildInkFileConnections();
@@ -223,7 +223,7 @@ namespace Ink.UnityIntegration {
 		public static void CreateOrReadUpdatedInkFiles (List<string> importedInkAssets) {
             for (int i = 0; i < importedInkAssets.Count; i++) {
                 string importedAssetPath = importedInkAssets[i];
-                InkFile inkFile = GetInkFileWithPath(importedAssetPath);
+                InkFileMetadata inkFile = GetInkFileWithPath(importedAssetPath);
 				if(inkFile == null) {
 					DefaultAsset asset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(importedAssetPath);
 					if(asset == null) {
@@ -232,8 +232,8 @@ namespace Ink.UnityIntegration {
 						i--;
 						Debug.LogWarning("InkLibrary failed to load ink file at "+importedAssetPath+". It has been removed from the list of files. You can ignore this warning.");
 					} else {
-						// New file; create and add InkFile to represent it. Content is read in InkFile constructor.
-						inkFile = new InkFile(asset);
+						// New file; create and add InkFileMetadata to represent it. Content is read in InkFileMetadata constructor.
+						inkFile = new InkFileMetadata(asset);
 						inkFile.FindCompiledJSONAsset();
 						Add(inkFile);
 					}
@@ -256,33 +256,33 @@ namespace Ink.UnityIntegration {
 		}
 
 		// All the master files
-		public static IEnumerable<InkFile> GetMasterInkFiles () {
+		public static IEnumerable<InkFileMetadata> GetMasterInkFiles () {
 			if(instance.inkLibrary == null) yield break;
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.isMaster) 
 					yield return inkFile;
 			}
 		}
 
-		public static IEnumerable<InkFile> GetInkFilesMarkedToCompileAsMasterFiles () {
+		public static IEnumerable<InkFileMetadata> GetInkFilesMarkedToCompileAsMasterFiles () {
 			if(instance.inkLibrary == null) yield break;
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.isMaster) 
 					yield return inkFile;
 			}
 		}
 
 		// All the master files which are dirty and are set to compile
-		public static IEnumerable<InkFile> GetFilesRequiringRecompile () {
-			foreach(InkFile inkFile in GetInkFilesMarkedToCompileAsMasterFiles ()) {
+		public static IEnumerable<InkFileMetadata> GetFilesRequiringRecompile () {
+			foreach(InkFileMetadata inkFile in GetInkFilesMarkedToCompileAsMasterFiles ()) {
 				if(InkSettings.instance.ShouldCompileInkFileAutomatically(inkFile) && inkFile.requiresCompile) 
 					yield return inkFile;
 			}
 		}
 
 		// All the master files which are set to compile
-		public static IEnumerable<InkFile> FilesCompiledByRecompileAll () {
-			foreach(InkFile inkFile in GetInkFilesMarkedToCompileAsMasterFiles ()) {
+		public static IEnumerable<InkFileMetadata> FilesCompiledByRecompileAll () {
+			foreach(InkFileMetadata inkFile in GetInkFilesMarkedToCompileAsMasterFiles ()) {
 				if(InkSettings.instance.ShouldCompileInkFileAutomatically(inkFile)) 
 					yield return inkFile;
 			}
@@ -294,7 +294,7 @@ namespace Ink.UnityIntegration {
 		/// <returns>The ink file with path.</returns>
 		/// <param name="file">File asset.</param>
 		/// <param name="addIfMissing">Adds the file if missing from inkLibrary.</param>
-		public static InkFile GetInkFileWithFile (DefaultAsset file, bool addIfMissing = false) {
+		public static InkFileMetadata GetInkFileWithFile (DefaultAsset file, bool addIfMissing = false) {
 			if(instance.inkLibrary == null) return null;
 			
 			if (!file) {
@@ -306,7 +306,7 @@ namespace Ink.UnityIntegration {
 				Debug.LogWarning("GetInkFileWithFile: inkLibraryDictionary was null! This should never occur, but is handled following a user reported bug. If this has never been seen long after 12/08/2020, it can be safely removed");
 				BuildLookupDictionary();
 			}
-			foreach(InkFile inkFile in instance.inkLibrary) {
+			foreach(InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.inkAsset == file) {
 					return inkFile;
 				}
@@ -314,7 +314,7 @@ namespace Ink.UnityIntegration {
 
 			var missingFileHasProperFileExtension = Path.GetExtension(AssetDatabase.GetAssetPath(file)) == InkEditorUtils.inkFileExtension;
 			if (addIfMissing) {
-				InkFile newFile = new InkFile(file);
+				InkFileMetadata newFile = new InkFileMetadata(file);
 				instance.inkLibrary.Add(newFile);
 				if(missingFileHasProperFileExtension) Debug.Log(file + " missing from ink library. Adding it now.");
 				else Debug.LogWarning("File "+file + " is missing the .ink extension, but is believed to be an ink file. All ink files should use the .ink file extension! A common effect of this is forcing the InkLibrary to rebuild unexpectedly when the file is detected as an include of another file.");
@@ -322,7 +322,7 @@ namespace Ink.UnityIntegration {
 			}
 
 			System.Text.StringBuilder listOfFiles = new System.Text.StringBuilder();
-			foreach(InkFile inkFile in instance.inkLibrary) {
+			foreach(InkFileMetadata inkFile in instance.inkLibrary) {
 				listOfFiles.AppendLine(inkFile.ToString());
 			}
 			if(missingFileHasProperFileExtension) Debug.LogWarning (file + " missing from ink library. Please rebuild.\nFiles in Library:\n"+listOfFiles);
@@ -335,9 +335,9 @@ namespace Ink.UnityIntegration {
 		/// </summary>
 		/// <returns>The ink file with path.</returns>
 		/// <param name="path">Path.</param>
-		public static InkFile GetInkFileWithPath (string path) {
+		public static InkFileMetadata GetInkFileWithPath (string path) {
 			if(instance.inkLibrary == null) return null;
-			foreach(InkFile inkFile in instance.inkLibrary) {
+			foreach(InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.filePath == path) {
 					return inkFile;
 				}
@@ -350,9 +350,9 @@ namespace Ink.UnityIntegration {
 		/// </summary>
 		/// <returns>The ink file with path.</returns>
 		/// <param name="path">Path.</param>
-		public static InkFile GetInkFileWithAbsolutePath (string absolutePath) {
+		public static InkFileMetadata GetInkFileWithAbsolutePath (string absolutePath) {
 			if(instance.inkLibrary == null) return null;
-			foreach(InkFile inkFile in instance.inkLibrary) {
+			foreach(InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.absoluteFilePath == absolutePath) {
 					return inkFile;
 				}
@@ -360,9 +360,9 @@ namespace Ink.UnityIntegration {
 			return null;
 		}
 
-		public static InkFile GetInkFileWithJSONFile (TextAsset inkJSONAsset) {
+		public static InkFileMetadata GetInkFileWithJSONFile (TextAsset inkJSONAsset) {
 			if(instance.inkLibrary == null) return null;
-			foreach(InkFile inkFile in instance.inkLibrary) {
+			foreach(InkFileMetadata inkFile in instance.inkLibrary) {
 				if(inkFile.jsonAsset == inkJSONAsset) {
 					return inkFile;
 				}
@@ -378,7 +378,7 @@ namespace Ink.UnityIntegration {
 		/// The upside is that we wouldn't trigger warnings/errors that this function throws, for unrelated files. It's a bit risky so I've not done it yet.
 		public static void RebuildInkFileConnections () {
 			// Resets the connections between files
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				inkFile.recursiveIncludeErrorPaths.Clear();
 				inkFile.ClearAllHierarchyConnections();
 			}
@@ -386,14 +386,14 @@ namespace Ink.UnityIntegration {
 			
 			// A dictionary which contains a list of all the ink files that INCLUDE a given ink file.
 			// Once this is done we can determine which files are master files, and then assert that any INCLUDED files actually exist.
-			Dictionary<InkFile, List<InkFile>> includedFileOwnerDictionary = new Dictionary<InkFile, List<InkFile>>();
-			Dictionary<InkFile, List<InkFile>> recursiveIncludeLogs = new Dictionary<InkFile, List<InkFile>>();
+			Dictionary<InkFileMetadata, List<InkFileMetadata>> includedFileOwnerDictionary = new Dictionary<InkFileMetadata, List<InkFileMetadata>>();
+			Dictionary<InkFileMetadata, List<InkFileMetadata>> recursiveIncludeLogs = new Dictionary<InkFileMetadata, List<InkFileMetadata>>();
 			// Traverses each file to any file paths referenced using INCLUDE, using the original file as the source path when dealing with nested INCLUDES. 
 			// Since not all of the files are guaranteed to be master files, we don't assert that the files actually exist at this time.
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				BuildIncludeHierarchyAsIfMasterFile(inkFile, inkFile, recursiveIncludeLogs);
 				// Recurse ink file includes for a (potential) master ink file, adding them to the file's list of includes if they exist
-				static void BuildIncludeHierarchyAsIfMasterFile(InkFile potentialMasterInkFile, InkFile currentInkFile, Dictionary<InkFile, List<InkFile>> recursiveIncludeLogs) {
+				static void BuildIncludeHierarchyAsIfMasterFile(InkFileMetadata potentialMasterInkFile, InkFileMetadata currentInkFile, Dictionary<InkFileMetadata, List<InkFileMetadata>> recursiveIncludeLogs) {
 					if(currentInkFile.localIncludePaths.Count == 0) 
 						return;
 					foreach (var includePath in currentInkFile.localIncludePaths) {
@@ -403,7 +403,7 @@ namespace Ink.UnityIntegration {
 						if (includedFile != null) {
 							// We probably only need to show this error for files that are later proved to be master files
 							if (potentialMasterInkFile == includedFile || potentialMasterInkFile.includes.Contains(includedFile.inkAsset)) {
-								if(!recursiveIncludeLogs.ContainsKey(potentialMasterInkFile)) recursiveIncludeLogs.Add(potentialMasterInkFile, new List<InkFile>());
+								if(!recursiveIncludeLogs.ContainsKey(potentialMasterInkFile)) recursiveIncludeLogs.Add(potentialMasterInkFile, new List<InkFileMetadata>());
 								recursiveIncludeLogs[potentialMasterInkFile].Add(currentInkFile); 
 								continue;
 							}
@@ -413,7 +413,7 @@ namespace Ink.UnityIntegration {
 						}
 					}
 					
-					static InkFile FindIncludedFile(string masterFilePath, string includePath) {
+					static InkFileMetadata FindIncludedFile(string masterFilePath, string includePath) {
 						string localIncludePath = InkEditorUtils.CombinePaths(Path.GetDirectoryName(masterFilePath), includePath);
 						// This enables parsing ..\ and the like. Can we use Path.GetFullPath instead?
 						var fullIncludePath = new FileInfo(localIncludePath).FullName;
@@ -428,7 +428,7 @@ namespace Ink.UnityIntegration {
 				
 				foreach (var includedFile in inkFile.includes) {
 					var includedInkFile = GetInkFileWithFile(includedFile);
-					if(!includedFileOwnerDictionary.ContainsKey(includedInkFile)) includedFileOwnerDictionary.Add(includedInkFile, new List<InkFile>());
+					if(!includedFileOwnerDictionary.ContainsKey(includedInkFile)) includedFileOwnerDictionary.Add(includedInkFile, new List<InkFileMetadata>());
 					includedFileOwnerDictionary[includedInkFile].Add(inkFile);
 				}
 			}
@@ -436,7 +436,7 @@ namespace Ink.UnityIntegration {
 			// Now we've established which files are INCLUDED we can tidy up by detecting and removing non-master files.
 			// It's not a master file then we remove all references to it as a master file in the includedFileOwnerDictionary.
 			// We don't clear the includes list for those files (even though referenced files may be null), because the user may mark isMarkedToCompileAsMasterFile true at a later date.
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				var isMasterFile = !includedFileOwnerDictionary.ContainsKey(inkFile) || includedFileOwnerDictionary[inkFile].Count == 0 || inkFile.isMarkedToCompileAsMasterFile;
 				if (!isMasterFile) {
 					foreach (var includedFileOwners in includedFileOwnerDictionary) {
@@ -446,7 +446,7 @@ namespace Ink.UnityIntegration {
 			}
 			
 			// Master ink files and includedFileOwnerDictionary are now valid collections denoting master files and their includes. The final step is to add the masters in any included files.
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				if (!includedFileOwnerDictionary.ContainsKey(inkFile) || includedFileOwnerDictionary[inkFile].Count == 0 || inkFile.isMarkedToCompileAsMasterFile) {
 					foreach (var includedFile in inkFile.includes) {
 						var includedInkFile = GetInkFileWithFile(includedFile);
@@ -468,7 +468,7 @@ namespace Ink.UnityIntegration {
 		
 		// Deletes any JSON ink assets that aren't expected to exist because their ink files aren't expected to be compiled
 		public static void DeleteUnwantedCompiledJSONAssets() {
-			foreach (InkFile inkFile in instance.inkLibrary) {
+			foreach (InkFileMetadata inkFile in instance.inkLibrary) {
 				if(!inkFile.isMaster && inkFile.jsonAsset != null) {
 					AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(inkFile.jsonAsset));
 					inkFile.jsonAsset = null;

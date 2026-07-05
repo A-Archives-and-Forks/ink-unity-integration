@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace Ink.UnityIntegration {
 	public class InkInspector : DefaultAssetInspector {
 
-		private InkFile inkFile;
+		private InkFileMetadata inkFile;
 		private ReorderableList includesFileList;
 		private ReorderableList mastersFileList;
 		private ReorderableList errorList;
@@ -70,7 +70,7 @@ namespace Ink.UnityIntegration {
 			InkCompiler.OnCompileInk -= OnCompileInk;
 		}
 
-		void OnCompileInk (InkFile[] inkFiles) {
+		void OnCompileInk (InkFileMetadata[] inkFiles) {
 			// We could probably be smarter about when we rebuild - only rebuilding if the file that's shown in the inspector is in the list - but it's not frequent or expensive so it's not important!
 			Rebuild();
 		}
@@ -111,7 +111,7 @@ namespace Ink.UnityIntegration {
 					EditorGUI.LabelField(rect, new GUIContent("Warning: Ink File in include list is null. Use Assets > Recompile Ink to fix this issue."));
 					return;
 				}
-				InkFile childInkFile = InkLibrary.GetInkFileWithFile(childAssetFile);
+				InkFileMetadata childInkFile = InkLibrary.GetInkFileWithFile(childAssetFile);
 				if(childInkFile == null) {
 					Debug.LogError("Ink File for included file "+childAssetFile+" not found. This should never occur. Use Assets > Recompile Ink to fix this issue.");
 					EditorGUI.LabelField(rect, new GUIContent("Warning: Ink File for included file "+childAssetFile+" not found. Use Assets > Recompile Ink to fix this issue."));
@@ -150,7 +150,7 @@ namespace Ink.UnityIntegration {
 					EditorGUI.LabelField(rect, new GUIContent("Warning: Ink File in masters list is null. Use Assets > Recompile Ink to fix this issue."));
 					return;
 				}
-				InkFile masterInkFile = InkLibrary.GetInkFileWithFile(masterAssetFile);
+				InkFileMetadata masterInkFile = InkLibrary.GetInkFileWithFile(masterAssetFile);
 				if(masterInkFile == null) {
 					Debug.LogError("Ink File for master file "+masterAssetFile+" not found. This should never occur. Use Assets > Recompile Ink to fix this issue.");
 					EditorGUI.LabelField(rect, new GUIContent("Warning: Ink File for master file "+masterAssetFile+" not found. Use Assets > Recompile Ink to fix this issue."));
@@ -246,7 +246,7 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-		public static void DrawLayoutInkLine (InkFile inkFile, int lineNumber, string label) {
+		public static void DrawLayoutInkLine (InkFileMetadata inkFile, int lineNumber, string label) {
 			GUILayout.BeginHorizontal();
 			GUILayout.Label(label);
 			string openLabel = "Open"+ (lineNumber == -1 ? "" : " ("+lineNumber+")");
@@ -390,7 +390,7 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-		void DrawEditAndCompileDates (InkFile masterInkFile) {
+		void DrawEditAndCompileDates (InkFileMetadata masterInkFile) {
 			string editAndCompileDateString = "";
 			DateTime lastEditDate = inkFile.lastEditDate;
 			editAndCompileDateString += "Last edit date "+lastEditDate.ToString();

@@ -116,7 +116,7 @@ namespace Ink.UnityIntegration {
 			}
 	    }
 
-		static void DrawInkFile (InkFile inkFile, Rect rect) {
+		static void DrawInkFile (InkFileMetadata inkFile, Rect rect) {
 			bool isSmall = rect.width > rect.height;
 			if (isSmall) {
 				rect.width = rect.height;
@@ -130,7 +130,7 @@ namespace Ink.UnityIntegration {
 			}
 	    }
 
-		static void DrawLarge (InkFile inkFile, Rect rect) {
+		static void DrawLarge (InkFileMetadata inkFile, Rect rect) {
 			var offset = (rect.width - largeIconSize) * 0.5f;
 			rect = new Rect(rect.x + offset, rect.y + offset, largeIconSize, largeIconSize);
 			if(inkFileIconLarge != null)
@@ -155,7 +155,7 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-		static void DrawSmall (InkFile inkFile, Rect rect) {
+		static void DrawSmall (InkFileMetadata inkFile, Rect rect) {
 			if(inkFileIcon != null)
 				GUI.DrawTexture(rect, inkFileIcon);
 

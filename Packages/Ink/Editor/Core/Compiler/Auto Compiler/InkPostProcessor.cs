@@ -48,7 +48,7 @@ namespace Ink.UnityIntegration {
 
 //			bool alsoDeleteJSON = false;
 //			alsoDeleteJSON = EditorUtility.DisplayDialog("Deleting .ink file", "Also delete the JSON file associated with the deleted .ink file?", "Yes", "No"));
-			List<InkFile> masterFilesAffected = new List<InkFile>();
+			List<InkFileMetadata> masterFilesAffected = new List<InkFileMetadata>();
 			for (int i = InkLibrary.instance.inkLibrary.Count - 1; i >= 0; i--) {
 				var inkFile = InkLibrary.instance.inkLibrary[i];
 				// If this file was deleted...
@@ -100,7 +100,7 @@ namespace Ink.UnityIntegration {
 			// Move compiled JSON files.
 			// This can cause Unity to postprocess assets again.
 			foreach(var inkFilePath in validMovedAssets) {
-				InkFile inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
+				InkFileMetadata inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
 				if(inkFile == null) continue;
 				if(inkFile.jsonAsset == null) continue;
 
@@ -135,11 +135,11 @@ namespace Ink.UnityIntegration {
 			}
 			// Check if no JSON assets were moved (as a result of none needing to move, or this function being called as a result of JSON files being moved)
 			if(queuedMovedInkFileAssets.Count > 0) {
-				List<InkFile> filesToCompile = new List<InkFile>();
+				List<InkFileMetadata> filesToCompile = new List<InkFileMetadata>();
 
 				// Add the old master file to the files to be recompiled
 				foreach(var inkFilePath in queuedMovedInkFileAssets) {
-					InkFile inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
+					InkFileMetadata inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
 					if(inkFile == null) continue;
 					foreach(var masterInkFile in inkFile.masterInkFilesIncludingSelf) {
 						if(InkSettings.instance.ShouldCompileInkFileAutomatically(masterInkFile) && !filesToCompile.Contains(masterInkFile))
@@ -156,7 +156,7 @@ namespace Ink.UnityIntegration {
 
 				// Add the new file to be recompiled
 				foreach(var inkFilePath in queuedMovedInkFileAssets) {
-					InkFile inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
+					InkFileMetadata inkFile = InkLibrary.GetInkFileWithPath(inkFilePath);
 					if(inkFile == null) continue;
 
 					foreach(var masterInkFile in inkFile.masterInkFilesIncludingSelf) {
