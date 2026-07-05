@@ -8,6 +8,9 @@
 [Bb]uilds/
 [Ll]ogs/
 
+# Per-user editor state, should never be committed
+[Uu]serSettings/
+
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
@@ -41,6 +44,7 @@ ExportedObj/
 *.pidb
 *.suo
 *.sln
+*.slnx
 *.user
 *.unityproj
 *.booproj
