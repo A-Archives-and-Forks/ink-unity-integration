@@ -41,6 +41,7 @@ ExportedObj/
 *.svd
 *.userprefs
 *.csproj
+*.csproj.meta
 *.pidb
 *.suo
 *.sln
