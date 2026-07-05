@@ -16,10 +16,15 @@ namespace Ink.UnityIntegration {
 		
 		// We should make this a stack, similar to GUI.BeginDisabledGroup.
 		public static bool disabled = false;
+		// Importer migration (Phase 1): the InkImporter ScriptedImporter now owns .ink compilation on import.
+		// This legacy auto-compiler is retained for reference but kept inert to avoid double-compilation.
+		// static readonly (not const) so it doesn't trigger unreachable-code warnings.
+		static readonly bool legacyAutoCompileEnabled = false;
 		// I'd like to make this a public facing setting sometime. Options are async or immediate.
 		public static bool compileImmediatelyOnImport = false;
 		// Recompiles any ink files as a result of an ink file (re)import
 		private static void OnPostprocessAllAssets (string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {
+			if(!legacyAutoCompileEnabled) return;
 			if(disabled) return;
 			if(deletedAssets.Length > 0) {
 				OnDeleteAssets(deletedAssets);

@@ -111,7 +111,11 @@ namespace Ink.UnityIntegration {
 	    static void OnDrawProjectWindowItem(string guid, Rect rect) {
 	        string path = AssetDatabase.GUIDToAssetPath(guid);
 			if (InkEditorUtils.IsInkFile(path)) {
+				// .ink files are now imported by InkImporter (as InkFile), not as DefaultAssets, so this
+				// legacy DefaultAsset lookup returns null. Skip to avoid errors; a proper InkFile icon
+				// replaces this custom drawing in Phase 3 of the importer migration.
 				DefaultAsset asset = AssetDatabase.LoadAssetAtPath<DefaultAsset>(path);
+				if (asset == null) return;
 				DrawInkFile(InkLibrary.GetInkFileWithFile(asset), rect);
 			}
 	    }
