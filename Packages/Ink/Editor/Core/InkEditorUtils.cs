@@ -33,6 +33,10 @@ namespace Ink.UnityIntegration {
 		public const string inkFileExtension = ".ink";
 		const string lastCompileTimeKey = "InkIntegrationLastCompileTime";
 
+		// Version constants (previously on InkLibrary, which has been retired in favour of the InkImporter).
+		public static readonly System.Version inkVersionCurrent = new System.Version(1,2,1);
+		public static readonly System.Version unityIntegrationVersionCurrent = new System.Version(2,0,0);
+
 		private static Texture2D _inkLogoIcon;
 
 		static InkEditorUtils() {
@@ -53,10 +57,6 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-		[MenuItem("Assets/Rebuild Ink Library", false, 200)]
-		public static void RebuildLibrary() {
-			InkLibrary.Rebuild();
-		}
 
 		[System.Obsolete("Use ForceRecompileAllInkFilesAsync() instead.")]
 		public static void RecompileAll() {
@@ -308,35 +308,11 @@ namespace Ink.UnityIntegration {
 		/// <returns>True if it's an ink file, otherwise false.</returns>
 		public static bool IsInkFile(string path) {
 			if (string.IsNullOrEmpty(path)) return false;
-			string extension = Path.GetExtension(path);
-			if (extension == InkEditorUtils.inkFileExtension) {
-				return true;
-			} else if (String.IsNullOrEmpty(extension)) {
-				if (!File.Exists(path)) return false;
-				if (File.GetAttributes(path).HasFlag(FileAttributes.Directory)) return false;
-				// This check exists only in the case of ink files that lack the .ink extension.
-				// We support this mostly for legacy reasons - Inky didn't used to add .ink by default which made a this relatively common issue.
-				// This function needs to be speedy but getting all the ink file paths is a bit slow, so I'd like to remove support for missing extensions in the future.
-				return InkLibrary.instance.inkLibrary.Exists(f => f.filePath == path);
-			} else return false;
+			return Path.GetExtension(path) == inkFileExtension;
 		}
 
 
 
-		/// <summary>
-		/// Opens an ink file in the associated editor at the correct line number.
-		/// TODO - If the editor is inky, this code should load the master file, but immediately show the correct child file at the correct line.
-		/// </summary>
-		public static void OpenInEditor (InkFileMetadata inkFile, InkCompilerLog log) {
-			// EditorUtility.OpenWithDefaultApp(...);
-			AssetDatabase.OpenAsset(inkFile.inkAsset, log.lineNumber);
-			// Unity.CodeEditor.CodeEditor.OSOpenFile();
-			// This function replaces OpenFileAtLineExternal, but I guess it's totally internal and can't be accessed.
-			// CodeEditorUtility.Editor.Current.OpenProject(targetFilePath, lineNumber);
-			// #pragma warning disable
-			// UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(targetFilePath, log.lineNumber);
-			// #pragma warning restore
-		}
 		/// <summary>
 		/// Opens an ink file in the associated editor at the correct line number.
 		/// TODO - If the editor is inky, this code should load the master file, but immediately show the correct child file at the correct line.
