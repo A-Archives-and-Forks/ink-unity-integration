@@ -10,16 +10,13 @@ This is a breaking change. Here's how to upgrade an existing project.
 ## 1. Update Unity
 The minimum supported version is now **Unity 2022.3 LTS**. Open your project in 2022.3+.
 
-## 2. Mark your master files
-A `.ink` file is only compiled into a runnable story when it is a *master* file.
-Select each standalone story's `.ink` file in the Project window and, in the Inspector's
-**Import Settings**, tick **Compile As Master File**, then click **Apply**.
+## 2. Master files (automatic — no action needed)
+As in 1.x, master files are detected automatically: any `.ink` file that isn't `INCLUDE`d by
+another file is a master and is compiled into a runnable story. Files that are only `INCLUDE`d
+are compiled as part of their master and no longer produce their own errors.
 
-Files that are only ever `INCLUDE`d by another file should be left unticked — they are
-compiled as part of the master that includes them, and no longer produce their own errors.
-
-> In 1.x, master files were auto-detected (any file not included by another). In 2.0 you
-> designate them explicitly, which removes a whole class of ambiguity and cross-file scanning.
+If you need to compile an include file on its own as well (the old "Should also be Master File"
+option), select it and tick **Compile As Master File** in its Import Settings.
 
 ## 3. Update your code and references
 Game code previously referenced the generated `.json` as a `TextAsset`:
