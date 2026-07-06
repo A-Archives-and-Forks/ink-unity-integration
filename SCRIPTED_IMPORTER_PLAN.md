@@ -1,6 +1,6 @@
 # Ink ScriptedImporter — Implementation Plan
 
-Dev planning doc (repo root, **not** shipped in the `Packages/Ink` UPM package).
+Dev planning doc (repo root, **not** shipped in the `Packages/com.inkle.ink-unity-integration` UPM package).
 
 ## Goal
 Replace the postprocessor/queue compile pipeline with a `ScriptedImporter` so `.ink`
@@ -36,7 +36,7 @@ thin `OnPostprocessAllAssets`.
 ## Phases
 
 ### Phase 1 — Core importer + `InkFile` asset (the swap)
-- Runtime asmdef + `Packages/Ink/Runtime/InkFile.cs` (`ScriptableObject`: `storyJson`,
+- Runtime asmdef + `Packages/com.inkle.ink-unity-integration/Runtime/InkFile.cs` (`ScriptableObject`: `storyJson`,
   errors/warnings/todos). Move `InkCompilerLog` to runtime and **fix its `using
   UnityEditor;`** (latent player-build break).
 - `InkImporter.cs` (`[ScriptedImporter(1,"ink")]`): compile via `new Compiler(text,{fileHandler=UnityInkFileHandler,...})`,

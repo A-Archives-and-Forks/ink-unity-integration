@@ -37,7 +37,7 @@ Installing via a package allows you to easily update via Unity's Package Manager
 ### From GitHub
 * You can clone/download/fork the project on [GitHub](https://github.com/inkle/ink-unity-integration).
 * The easiest way to download it is to click the green Code button and select Download ZIP
-* Install by moving the folder Packages/Ink to anywhere in your Unity project's Assets folder
+* Install by moving the folder Packages/com.inkle.ink-unity-integration to anywhere in your Unity project's Assets folder
 
 ### Via the Asset Store
 
