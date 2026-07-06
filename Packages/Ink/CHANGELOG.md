@@ -12,7 +12,7 @@ Ink files are now imported directly by a Unity ScriptedImporter, replacing the o
 1. Update to Unity 2022.3 or newer.
 2. Master files are detected automatically (as before) — no marking needed. Optionally use the per-file "Compile As Master File" override for an include you also want compiled on its own.
 3. Repoint references from the generated `.json` `TextAsset` to the `.ink`'s `InkFile`, and replace `new Story(textAsset.text)` with `new Story(inkFile.storyJson)`.
-4. Delete the now-unused generated `.json` files.
+4. Delete the now-unused generated `.json` files — run **Assets ▸ Migrate Ink Project from 1.x** to do this automatically.
 
 ## Version 1.3.0 (5th July 2026):
 - Updated Ink to 1.2.1

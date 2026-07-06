@@ -40,7 +40,8 @@ the new field type).
 
 ## 4. Delete the old generated `.json` files
 The compiled JSON now lives inside the `InkFile` import artifact, so the committed `.json`
-files next to your `.ink` files are no longer used. Delete them (and stop committing them).
+files next to your `.ink` files are no longer used. Run **Assets ▸ Migrate Ink Project from 1.x**
+to find and delete them automatically (or delete them by hand), and stop committing them.
 
 ## Notes
 - Compiler errors/warnings/todos now show on the `.ink` file's import inspector and in the
