@@ -35,12 +35,13 @@ namespace Ink.UnityIntegration {
 			var current = InkEditorUtils.unityIntegrationVersionCurrent.ToString();
 			if (EditorPrefs.GetString(CheckedVersionKey, string.Empty) != current) {
 				EditorPrefs.SetString(CheckedVersionKey, current);
-				RefreshLegacyJsonCache();
+				RecheckLegacyJson();
 			}
 			return EditorPrefs.GetBool(HasLegacyJsonKey, false);
 		}
 
-		static void RefreshLegacyJsonCache () {
+		/// <summary>Forces a fresh scan and updates the cache. Cheap to call from infrequent UI (e.g. opening the settings tab).</summary>
+		public static void RecheckLegacyJson () {
 			EditorPrefs.SetBool(HasLegacyJsonKey, FindLegacyJson().Count > 0);
 		}
 
@@ -65,7 +66,7 @@ namespace Ink.UnityIntegration {
 			} finally {
 				AssetDatabase.StopAssetEditing();
 			}
-			RefreshLegacyJsonCache();
+			RecheckLegacyJson();
 			Debug.Log($"Ink migration: deleted {oldJson.Count} old compiled .json file(s):\n{string.Join("\n", oldJson)}\n\n{codeReminder}");
 		}
 

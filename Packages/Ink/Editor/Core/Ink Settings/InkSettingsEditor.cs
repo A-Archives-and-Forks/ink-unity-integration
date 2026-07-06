@@ -18,7 +18,11 @@ namespace Ink.UnityIntegration {
 		public static SettingsProvider CreateInkSettingsProvider () {
 			return new SettingsProvider("Project/Ink", SettingsScope.Project) {
 				label = "Ink",
-				activateHandler = (searchContext, rootElement) => rootElement.Add(BuildUI(InkSettings.GetSerializedSettings())),
+				activateHandler = (searchContext, rootElement) => {
+					// The settings tab opens rarely, so it's a good moment to re-check for leftover 1.x files.
+					InkMigrationTool.RecheckLegacyJson();
+					rootElement.Add(BuildUI(InkSettings.GetSerializedSettings()));
+				},
 			};
 		}
 
