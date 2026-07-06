@@ -125,17 +125,17 @@ namespace Ink.UnityIntegration {
 			else DrawSmall(inkFile, rect);
 		}
 
+		// The base ink icon is set on the asset itself (InkImporter.AddObjectToAsset), so it shows in
+		// every view. This overlay only adds the state badges on top, in the Project window.
 		static void DrawLarge (InkFile inkFile, Rect rect) {
 			var offset = (rect.width - largeIconSize) * 0.5f;
 			rect = new Rect(rect.x + offset, rect.y + offset, largeIconSize, largeIconSize);
-			if (inkFileIconLarge != null) GUI.DrawTexture(rect, inkFileIconLarge);
 			DrawStatusBadge(inkFile, new Rect(rect.center, rect.size * 0.5f));
 			if (!inkFile.isMaster && childIconLarge != null)
 				GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height * 0.5f), childIconLarge);
 		}
 
 		static void DrawSmall (InkFile inkFile, Rect rect) {
-			if (inkFileIcon != null) GUI.DrawTexture(rect, inkFileIcon);
 			DrawStatusBadge(inkFile, new Rect(rect.center, rect.size * 0.5f));
 			if (!inkFile.isMaster && childIcon != null)
 				GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height * 0.5f), childIcon);

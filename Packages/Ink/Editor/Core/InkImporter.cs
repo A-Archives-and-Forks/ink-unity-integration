@@ -112,7 +112,9 @@ namespace Ink.UnityIntegration {
                 try {
                     var compiledStory = compiler.Compile();
                     if (compiledStory != null) inkFile.SetStoryJson(compiledStory.ToJson());
+                    inkFile.SetCompileDate(DateTime.Now);
                 } catch (Exception e) {
+                    inkFile.unhandledCompileErrors.Add(e.ToString());
                     ctx.LogImportError($"Ink compilation threw an exception for {fileName}: {e}");
                 }
 
@@ -123,7 +125,9 @@ namespace Ink.UnityIntegration {
                 }
             }
 
-            ctx.AddObjectToAsset("InkFile", inkFile);
+            // Give the imported asset a real icon (shows everywhere: project browser, inspector header,
+            // object fields). State badges are still drawn as an overlay by InkBrowserIcons.
+            ctx.AddObjectToAsset("InkFile", inkFile, InkBrowserIcons.inkFileIcon);
             ctx.SetMainObject(inkFile);
         }
     }

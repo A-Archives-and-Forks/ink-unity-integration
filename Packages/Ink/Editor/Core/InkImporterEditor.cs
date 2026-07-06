@@ -11,13 +11,14 @@ namespace Ink.UnityIntegration {
     [CustomEditor(typeof(InkImporter))]
     public class InkImporterEditor : ScriptedImporterEditor {
         public override void OnInspectorGUI () {
+            // Keep this section to import *settings* only (it owns Apply/Revert); all status and info is
+            // shown on the imported InkFile below. Master files have no settings, so show a short note.
             var importer = (InkImporter)target;
             serializedObject.Update();
 
             if (importer.IsMasterFile) {
-                EditorGUILayout.HelpBox("Master file — compiled to a runnable story on import.", MessageType.None);
+                EditorGUILayout.LabelField("Master file (detected automatically).", EditorStyles.miniLabel);
             } else {
-                EditorGUILayout.HelpBox("This file is INCLUDEd by another ink file, so it's compiled as part of that master rather than on its own.", MessageType.None);
                 EditorGUILayout.PropertyField(
                     serializedObject.FindProperty("compileAsMasterFileOverride"),
                     new GUIContent("Compile As Master File",
