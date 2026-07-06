@@ -21,8 +21,28 @@ namespace Ink.UnityIntegration {
 			"Also update your scripts: reference the .ink file's InkFile (not the old TextAsset) and use " +
 			"new Story(inkFile.storyJson) instead of new Story(textAsset.text).";
 
-		/// <summary>True if the project still has compiled .json files left over from ink 1.x.</summary>
-		public static bool HasLegacyJson () => FindLegacyJson().Count > 0;
+		// Cached per-project (keyed by project path) so we don't scan the whole project on every settings
+		// open or editor launch. The scan only re-runs when the plugin version changes (i.e. on upgrade).
+		static string CheckedVersionKey => "Ink.MigrationCheckedVersion." + Application.dataPath;
+		static string HasLegacyJsonKey => "Ink.HasLegacyJson." + Application.dataPath;
+
+		/// <summary>
+		/// True if the project still has compiled .json files left over from ink 1.x. Cheap: the project is
+		/// only scanned the first time this is called after a plugin version change (an upgrade); otherwise
+		/// it returns the cached result. Re-checked automatically after Migrate() runs.
+		/// </summary>
+		public static bool HasLegacyJson () {
+			var current = InkEditorUtils.unityIntegrationVersionCurrent.ToString();
+			if (EditorPrefs.GetString(CheckedVersionKey, string.Empty) != current) {
+				EditorPrefs.SetString(CheckedVersionKey, current);
+				RefreshLegacyJsonCache();
+			}
+			return EditorPrefs.GetBool(HasLegacyJsonKey, false);
+		}
+
+		static void RefreshLegacyJsonCache () {
+			EditorPrefs.SetBool(HasLegacyJsonKey, FindLegacyJson().Count > 0);
+		}
 
 		/// <summary>Finds and (after confirmation) deletes the leftover 1.x compiled .json files.</summary>
 		public static void Migrate () {
@@ -45,6 +65,7 @@ namespace Ink.UnityIntegration {
 			} finally {
 				AssetDatabase.StopAssetEditing();
 			}
+			RefreshLegacyJsonCache();
 			Debug.Log($"Ink migration: deleted {oldJson.Count} old compiled .json file(s):\n{string.Join("\n", oldJson)}\n\n{codeReminder}");
 		}
 
