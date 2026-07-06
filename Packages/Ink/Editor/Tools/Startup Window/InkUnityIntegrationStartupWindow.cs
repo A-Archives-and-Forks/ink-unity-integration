@@ -32,7 +32,7 @@ namespace Ink.UnityIntegration {
 		public static void ShowWindow () {
 			var window = GetWindow(typeof(InkUnityIntegrationStartupWindow), true, "Ink Update " + InkEditorUtils.unityIntegrationVersionCurrent, true) as InkUnityIntegrationStartupWindow;
 			window.minSize = new Vector2(200, 200);
-			var size = new Vector2(520, 320);
+			var size = new Vector2(520, 480);
 			window.position = new Rect((Screen.currentResolution.width - size.x) * 0.5f, (Screen.currentResolution.height - size.y) * 0.5f, size.x, size.y);
 			EditorPrefs.SetInt(editorPrefsKeyForVersionSeen, announcementVersion);
 		}

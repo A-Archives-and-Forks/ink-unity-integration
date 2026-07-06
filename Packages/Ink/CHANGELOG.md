@@ -1,18 +1,18 @@
 ## Version 2.0.0 (5th July 2026):
-Ink files are now imported directly by a Unity ScriptedImporter, replacing the old system of generating a separate compiled .json file for each .ink.
+Ink files are now compiled by a Unity ScriptedImporter, replacing the old compile queue and its per-file `.json` output.
 
-- ⚠️ Breaking: a `.ink` file now imports into an `InkFile` asset that holds the compiled story. No separate `.json` `TextAsset` is generated. Reference `InkFile` in your code and use `new Story(inkFile.storyJson)`.
-- ⚠️ Breaking: the minimum supported Unity version is now 2022.3 LTS.
-- Master files are detected automatically (any `.ink` file not INCLUDEd by another), exactly as before. Include files are compiled as part of their master and no longer error when they can't compile standalone. An optional per-file "Compile As Master File" override forces an include to also be compiled (the old "Should also be Master File" tickbox).
-- Includes are tracked via Unity's dependency system, so editing a (nested) include reimports the master files that use it.
-- Compiler errors, warnings and todos appear on the asset's import inspector and in the console.
-- Removed the InkLibrary, the InkCompiler compilation queue and the old auto-compiler; Unity's import pipeline handles scheduling.
+- ⚠️ Breaking: `.ink` files import as an `InkFile` asset — no `.json` is generated. Reference `InkFile` and use `new Story(inkFile.storyJson)`.
+- ⚠️ Breaking: minimum Unity version is now 2022.3 LTS.
+- Editing an include (even nested) now reliably reimports its master file(s).
+- Errors, warnings and TODOs show on the import inspector and in the console.
+- Builds now fail if any ink file has compile errors.
+- Removed `InkLibrary`, the `InkCompiler` queue and the auto-compiler; "Rebuild Ink Library" is now "Recompile All Ink Files".
+- Editor inspectors and windows rebuilt with UI Toolkit.
 
 ### Migrating from 1.x — see MIGRATION.md
-1. Update to Unity 2022.3 or newer.
-2. Master files are detected automatically (as before) — no marking needed. Optionally use the per-file "Compile As Master File" override for an include you also want compiled on its own.
-3. Repoint references from the generated `.json` `TextAsset` to the `.ink`'s `InkFile`, and replace `new Story(textAsset.text)` with `new Story(inkFile.storyJson)`.
-4. Delete the now-unused generated `.json` files — run **Assets ▸ Migrate Ink Project from 1.x** to do this automatically.
+1. Update to Unity 2022.3+.
+2. Reference the `.ink`'s `InkFile` instead of the `.json`, and use `new Story(inkFile.storyJson)`.
+3. Run **Assets ▸ Migrate Ink Project from 1.x** to delete the old `.json` files.
 
 ## Version 1.3.0 (5th July 2026):
 - Updated Ink to 1.2.1
