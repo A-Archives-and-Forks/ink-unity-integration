@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -78,26 +77,35 @@ namespace Ink.UnityIntegration {
 
 			if (!string.IsNullOrEmpty(changelogText)) {
 				var scroll = new ScrollView { style = { flexGrow = 1, marginTop = 8 } };
-				// Split on "## " only at the start of a line, so "### " sub-headers aren't matched.
-				foreach (var section in Regex.Split(changelogText, @"(?m)^## ")) {
-					if (string.IsNullOrWhiteSpace(section)) continue;
-					var lines = section.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-					var box = new VisualElement { style = { marginBottom = 6 } };
-					var version = new Label(lines[0]);
-					version.style.unityFontStyleAndWeight = FontStyle.Bold;
-					box.Add(version);
-					for (int i = 1; i < lines.Length; i++) {
-						// Strip leading markdown (### sub-headers, - bullets) before rendering as a bullet.
-						var text = lines[i].TrimStart('#', '-', ' ');
-						if (string.IsNullOrWhiteSpace(text)) continue;
-						var bullet = new Label("• " + text);
-						bullet.style.whiteSpace = WhiteSpace.Normal;
-						box.Add(bullet);
-					}
-					scroll.Add(box);
+				foreach (var rawLine in changelogText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+					var element = BuildChangelogLine(rawLine);
+					if (element != null) scroll.Add(element);
 				}
 				root.Add(scroll);
 			}
+		}
+
+		// Renders one line of the markdown changelog: headers (#, ##, ### ...) at decreasing sizes,
+		// "- " lines as bullets, everything else as a plain paragraph.
+		static VisualElement BuildChangelogLine (string rawLine) {
+			var line = rawLine.Trim();
+			if (line.Length == 0) return null;
+
+			int level = 0;
+			while (level < line.Length && line[level] == '#') level++;
+			if (level > 0 && level < line.Length && line[level] == ' ') {
+				var header = new Label(line.Substring(level + 1).Trim());
+				header.style.unityFontStyleAndWeight = FontStyle.Bold;
+				header.style.fontSize = level <= 1 ? 18 : level == 2 ? 15 : level == 3 ? 12 : 11;
+				header.style.marginTop = level <= 2 ? 10 : 6;
+				header.style.marginBottom = 2;
+				header.style.whiteSpace = WhiteSpace.Normal;
+				return header;
+			}
+
+			var label = new Label(line.StartsWith("- ") ? "• " + line.Substring(2).Trim() : line);
+			label.style.whiteSpace = WhiteSpace.Normal;
+			return label;
 		}
 
 		static Label CenteredGrey (string text) {
