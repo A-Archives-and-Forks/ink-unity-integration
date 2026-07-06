@@ -78,7 +78,8 @@ namespace Ink.UnityIntegration {
 
 			if (!string.IsNullOrEmpty(changelogText)) {
 				var scroll = new ScrollView { style = { flexGrow = 1, marginTop = 8 } };
-				foreach (var section in Regex.Split(changelogText, "## ")) {
+				// Split on "## " only at the start of a line, so "### " sub-headers aren't matched.
+				foreach (var section in Regex.Split(changelogText, @"(?m)^## ")) {
 					if (string.IsNullOrWhiteSpace(section)) continue;
 					var lines = section.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 					var box = new VisualElement { style = { marginBottom = 6 } };
@@ -86,7 +87,10 @@ namespace Ink.UnityIntegration {
 					version.style.unityFontStyleAndWeight = FontStyle.Bold;
 					box.Add(version);
 					for (int i = 1; i < lines.Length; i++) {
-						var bullet = new Label("• " + lines[i].TrimStart('-').TrimStart(' '));
+						// Strip leading markdown (### sub-headers, - bullets) before rendering as a bullet.
+						var text = lines[i].TrimStart('#', '-', ' ');
+						if (string.IsNullOrWhiteSpace(text)) continue;
+						var bullet = new Label("• " + text);
 						bullet.style.whiteSpace = WhiteSpace.Normal;
 						box.Add(bullet);
 					}
