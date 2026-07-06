@@ -31,7 +31,6 @@ namespace Ink.UnityIntegration {
 			}
 		}
 		public const string inkFileExtension = ".ink";
-		const string lastCompileTimeKey = "InkIntegrationLastCompileTime";
 
 		// Version constants (previously on InkLibrary, which has been retired in favour of the InkImporter).
 		public static readonly System.Version inkVersionCurrent = new System.Version(1,2,1);
@@ -68,15 +67,16 @@ namespace Ink.UnityIntegration {
 			ForceRecompileAllInkFilesSync();
 		}
 
-		// Reimports every ink file, which recompiles all master files via the InkImporter.
-		// Useful when a ScriptedImporter didn't fire (as with AssetPostProcessors, this can occasionally
-		// happen on external file changes) or when you want to be certain everything is freshly imported.
+		/// <summary>
+		/// Reimports every ink file, recompiling all master files via the InkImporter. Useful if an import
+		/// didn't fire on an external change, or to be certain everything is freshly compiled.
+		/// </summary>
 		[MenuItem("Assets/Recompile All Ink Files (Async)", false, 202)]
 		public static void ForceRecompileAllInkFilesAsync() {
 			ReimportAllInkFiles(ImportAssetOptions.Default);
 		}
 
-		// As above, but does not return until all imports have completed. Suitable for headless/build scripts.
+		/// <summary>As <see cref="ForceRecompileAllInkFilesAsync"/>, but blocks until all imports finish. Suitable for build scripts.</summary>
 		[MenuItem("Assets/Recompile All Ink Files (Sync)", false, 201)]
 		public static void ForceRecompileAllInkFilesSync() {
 			ReimportAllInkFiles(ImportAssetOptions.ForceSynchronousImport);
@@ -113,6 +113,7 @@ namespace Ink.UnityIntegration {
 #endif
 		}
 
+		/// <summary>Creates a new .ink file at the given path with the given contents and returns the imported asset.</summary>
 		public static DefaultAsset CreateNewInkFileAtPath (string filePath, string text) {
 			if(Path.GetExtension(filePath) != inkFileExtension) filePath += inkFileExtension;
 			var assetPath = CreateScriptAsset(filePath, text);
@@ -210,6 +211,7 @@ namespace Ink.UnityIntegration {
 			return story.variablesState.GetEnumerator().MoveNext();
 		}
 
+		/// <summary>Returns true if the JSON parses as a valid ink story; otherwise false, with the parse exception.</summary>
 		public static bool CheckStoryIsValid (string storyJSON, out Exception exception) {
 			try {
 				new Story(storyJSON);
@@ -255,9 +257,7 @@ namespace Ink.UnityIntegration {
 			return true;
 		}
 		
-		// Returns a sanitized version of the supplied string by:
-		//    - swapping MS Windows-style file separators with Unix/Mac style file separators.
-		// If null is provided, null is returned.
+		/// <summary>Normalises a path to use forward slashes (returns null for null input).</summary>
 		public static string SanitizePathString(string path) {
 			if (path == null) {
 				return null;
@@ -265,9 +265,7 @@ namespace Ink.UnityIntegration {
 			return path.Replace('\\', '/');
 		}
 		
-		// Combines two file paths and returns that path.  Unlike C#'s native Paths.Combine, regardless of operating 
-		// system this method will always return a path which uses forward slashes ('/' characters) exclusively to ensure
-		// equality checks on path strings return equalities as expected.
+		/// <summary>Combines two paths, always using forward slashes (unlike Path.Combine) so path comparisons are consistent.</summary>
 		public static string CombinePaths(string firstPath, string secondPath) {
             Debug.Assert(firstPath != null);
             Debug.Assert(secondPath != null);
@@ -282,30 +280,7 @@ namespace Ink.UnityIntegration {
 			return InkEditorUtils.CombinePaths(Application.dataPath, filePath.Substring(7));
 		}
 
-		/// <summary>
-		/// Draws a property field for a story using GUILayout, allowing you to attach stories to the player window for debugging.
-		/// </summary>
-		/// <param name="story">Story.</param>
-		/// <param name="label">Label.</param>
-		public static void DrawStoryPropertyField (Story story, GUIContent label) {
-			Debug.LogWarning("DrawStoryPropertyField has been moved from InkEditorUtils to InkPlayerWindow");
-		}
-
-		/// <summary>
-		/// Draws a property field for a story using GUI, allowing you to attach stories to the player window for debugging.
-		/// </summary>
-		/// <param name="position">Position.</param>
-		/// <param name="story">Story.</param>
-		/// <param name="label">Label.</param>
-		public static void DrawStoryPropertyField (Rect position, Story story, GUIContent label) {
-			Debug.LogWarning("DrawStoryPropertyField has been moved from InkEditorUtils to InkPlayerWindow");
-		}
-		
-		/// <summary>
-		/// Checks to see if the given path is an ink file or not, regardless of extension.
-		/// </summary>
-		/// <param name="path">The path to check.</param>
-		/// <returns>True if it's an ink file, otherwise false.</returns>
+		/// <summary>Returns true if the given path is a .ink file.</summary>
 		public static bool IsInkFile(string path) {
 			if (string.IsNullOrEmpty(path)) return false;
 			return Path.GetExtension(path) == inkFileExtension;
