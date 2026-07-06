@@ -12,6 +12,10 @@ namespace Ink.UnityIntegration {
         /// <summary>The compiled ink story as JSON. Pass this to new Ink.Runtime.Story(inkFile.storyJson).</summary>
         public string storyJson => _storyJson;
 
+        /// <summary>True if this file has a compiled story (a master with no fatal errors). Include files
+        /// and files that failed to compile return false — check this before creating a Story.</summary>
+        public bool isCompiled => !string.IsNullOrEmpty(_storyJson);
+
         [SerializeField] bool _isMaster;
         /// <summary>True if this file is a master (compiled on its own) rather than only INCLUDEd by others.</summary>
         public bool isMaster => _isMaster;
