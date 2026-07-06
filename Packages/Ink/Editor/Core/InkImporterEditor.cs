@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEditor.AssetImporters;
-using UnityEngine;
+using UnityEditor.UIElements;
+using UnityEngine.UIElements;
 
 namespace Ink.UnityIntegration {
     /// <summary>
@@ -10,24 +11,27 @@ namespace Ink.UnityIntegration {
     /// </summary>
     [CustomEditor(typeof(InkImporter))]
     public class InkImporterEditor : ScriptedImporterEditor {
-        public override void OnInspectorGUI () {
-            // Keep this section to import *settings* only (it owns Apply/Revert); all status and info is
-            // shown on the imported InkFile below. Master files have no settings, so show a short note.
+        public override VisualElement CreateInspectorGUI () {
+            var root = new VisualElement();
             var importer = (InkImporter)target;
-            serializedObject.Update();
 
             if (importer.IsMasterFile) {
-                EditorGUILayout.LabelField("Master file (detected automatically).", EditorStyles.miniLabel);
+                var label = new Label("Master file (detected automatically).");
+                label.style.unityFontStyleAndWeight = UnityEngine.FontStyle.Italic;
+                label.style.marginTop = 2;
+                label.style.marginBottom = 4;
+                root.Add(label);
             } else {
-                EditorGUILayout.PropertyField(
-                    serializedObject.FindProperty("compileAsMasterFileOverride"),
-                    new GUIContent("Compile As Master File",
-                        "Also compile this file as a master, even though it's included by another file. " +
-                        "(The equivalent of the old \"Should also be Master File\" option.)"));
+                var field = new PropertyField(serializedObject.FindProperty("compileAsMasterFileOverride"), "Compile As Master File") {
+                    tooltip = "Also compile this file as a master, even though it's included by another file. " +
+                              "(The equivalent of the old \"Should also be Master File\" option.)"
+                };
+                root.Add(field);
             }
 
-            serializedObject.ApplyModifiedProperties();
-            ApplyRevertGUI();
+            // ScriptedImporterEditor's Apply/Revert buttons are IMGUI-only; host them in an IMGUIContainer.
+            root.Add(new IMGUIContainer(ApplyRevertGUI));
+            return root;
         }
     }
 }

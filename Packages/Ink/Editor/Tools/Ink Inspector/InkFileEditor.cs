@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using Ink.Runtime;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Ink.UnityIntegration {
 	/// <summary>
@@ -15,94 +16,110 @@ namespace Ink.UnityIntegration {
 	[CustomEditor(typeof(InkFile))]
 	public class InkFileEditor : Editor {
 		const int maxPreviewChars = 16000;
-		bool showJson;
-		bool showSource;
 
-		public override void OnInspectorGUI () {
+		public override VisualElement CreateInspectorGUI () {
 			var inkFile = (InkFile)target;
 			var assetPath = AssetDatabase.GetAssetPath(inkFile);
+			var root = new VisualElement();
 
-			using (new EditorGUILayout.HorizontalScope()) {
-				var label = inkFile.isMaster
-					? new GUIContent("Master File", "A master file — compiled to a runnable story on import.")
-					: new GUIContent("Include File", InkBrowserIcons.childIcon, "Included by another ink file; compiled as part of that master.");
-				EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-				if (GUILayout.Button("Open", EditorStyles.miniButton, GUILayout.Width(60))) AssetDatabase.OpenAsset(inkFile);
-			}
+			// Header: master/include label + Open button.
+			var header = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween, alignItems = Align.Center } };
+			header.Add(Bold(inkFile.isMaster ? "Master File" : "Include File"));
+			header.Add(new Button(() => AssetDatabase.OpenAsset(inkFile)) { text = "Open" });
+			root.Add(header);
 
 			var recursive = InkIncludeGraph.GetRecursiveIncludeErrorPaths(assetPath);
 			if (recursive.Count > 0)
-				EditorGUILayout.HelpBox("A recursive INCLUDE connection exists in this file's INCLUDE hierarchy:\n" +
-					string.Join("\n", recursive.Select(p => "• " + p)), MessageType.Error);
+				root.Add(new HelpBox("A recursive INCLUDE connection exists in this file's INCLUDE hierarchy:\n" +
+					string.Join("\n", recursive.ConvertAll(p => "• " + p)), HelpBoxMessageType.Error));
 
 			if (inkFile.hasUnhandledCompileErrors) {
-				EditorGUILayout.HelpBox("The compiler failed unexpectedly. This may be a compiler bug — please report it.", MessageType.Error);
-				using (new EditorGUILayout.HorizontalScope()) {
-					if (GUILayout.Button("Report via GitHub")) Application.OpenURL("https://github.com/inkle/ink-unity-integration/issues");
-					if (GUILayout.Button("Report via Email")) Application.OpenURL("mailto:info@inklestudios.com?subject=Ink%20compiler%20bug");
-				}
+				root.Add(new HelpBox("The compiler failed unexpectedly. This may be a compiler bug — please report it.", HelpBoxMessageType.Error));
+				var reportRow = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+				reportRow.Add(Grow(new Button(() => Application.OpenURL("https://github.com/inkle/ink-unity-integration/issues")) { text = "Report via GitHub" }));
+				reportRow.Add(Grow(new Button(() => Application.OpenURL("mailto:info@inklestudios.com?subject=Ink%20compiler%20bug")) { text = "Report via Email" }));
+				root.Add(reportRow);
 			}
 
-			DrawLogs(inkFile, "Errors", inkFile.errors, MessageType.Error);
-			DrawLogs(inkFile, "Warnings", inkFile.warnings, MessageType.Warning);
-			DrawLogs(inkFile, "To do", inkFile.todos, MessageType.Info);
+			AddLogs(root, inkFile, "Errors", inkFile.errors, HelpBoxMessageType.Error);
+			AddLogs(root, inkFile, "Warnings", inkFile.warnings, HelpBoxMessageType.Warning);
+			AddLogs(root, inkFile, "To do", inkFile.todos, HelpBoxMessageType.Info);
 
 			var includes = InkIncludeGraph.GetDirectIncludes(assetPath);
-			if (includes.Count > 0) DrawFileList("Included Files", includes);
+			if (includes.Count > 0) AddFileList(root, "Included Files", includes);
 			if (!inkFile.isMaster) {
 				var includedBy = InkIncludeGraph.GetIncludedBy(assetPath);
-				if (includedBy.Count > 0) DrawFileList("Included By", includedBy);
+				if (includedBy.Count > 0) AddFileList(root, "Included By", includedBy);
 			}
 
-			DrawDates(inkFile, assetPath);
+			var dates = BuildDates(inkFile, assetPath);
+			if (!string.IsNullOrEmpty(dates)) root.Add(new HelpBox(dates, HelpBoxMessageType.None));
 
-			using (new EditorGUILayout.HorizontalScope()) {
-				if (GUILayout.Button("Reimport")) AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
-				using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(inkFile.storyJson))) {
-					if (GUILayout.Button("Play in Ink Player")) InkPlayerWindow.Attach(new Story(inkFile.storyJson));
-				}
-			}
+			var actions = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+			actions.Add(Grow(new Button(() => AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate)) { text = "Reimport" }));
+			var play = Grow(new Button(() => InkPlayerWindow.Attach(new Story(inkFile.storyJson))) { text = "Play in Ink Player" });
+			play.SetEnabled(!string.IsNullOrEmpty(inkFile.storyJson));
+			actions.Add(play);
+			root.Add(actions);
 
-			showJson = EditorGUILayout.Foldout(showJson, "Compiled JSON");
-			if (showJson) EditorGUILayout.SelectableLabel(inkFile.storyJson, EditorStyles.textArea, GUILayout.MaxHeight(200));
-
-			showSource = EditorGUILayout.Foldout(showSource, "Source");
-			if (showSource) EditorGUILayout.SelectableLabel(ReadSource(assetPath), EditorStyles.textArea, GUILayout.MaxHeight(200));
+			root.Add(BuildTextFoldout("Compiled JSON", inkFile.storyJson));
+			root.Add(BuildTextFoldout("Source", ReadSource(assetPath)));
+			return root;
 		}
 
-		static void DrawLogs (InkFile inkFile, string label, List<InkCompilerLog> logs, MessageType type) {
+		static Label Bold (string text) {
+			var label = new Label(text);
+			label.style.unityFontStyleAndWeight = FontStyle.Bold;
+			return label;
+		}
+
+		static T Grow<T> (T element) where T : VisualElement {
+			element.style.flexGrow = 1;
+			return element;
+		}
+
+		static void AddLogs (VisualElement root, InkFile inkFile, string label, List<InkCompilerLog> logs, HelpBoxMessageType type) {
 			if (logs == null || logs.Count == 0) return;
-			EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
+			root.Add(Bold(label));
 			foreach (var log in logs) {
-				using (new EditorGUILayout.HorizontalScope()) {
-					EditorGUILayout.HelpBox($"{log.content} (at {log.relativeFilePath}:{log.lineNumber})", type);
-					if (GUILayout.Button("Open", GUILayout.Width(50), GUILayout.Height(38)))
-						AssetDatabase.OpenAsset(inkFile, log.lineNumber);
-				}
+				var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+				row.Add(Grow(new HelpBox($"{log.content} (at {log.relativeFilePath}:{log.lineNumber})", type)));
+				var line = log.lineNumber;
+				row.Add(new Button(() => AssetDatabase.OpenAsset(inkFile, line)) { text = "Open" });
+				root.Add(row);
 			}
 		}
 
-		static void DrawFileList (string label, IReadOnlyList<string> paths) {
-			EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-			using (new EditorGUI.DisabledScope(true)) {
-				foreach (var path in paths)
-					EditorGUILayout.ObjectField(AssetDatabase.LoadAssetAtPath<InkFile>(path), typeof(InkFile), false);
+		static void AddFileList (VisualElement root, string label, IReadOnlyList<string> paths) {
+			root.Add(Bold(label));
+			foreach (var path in paths) {
+				var field = new ObjectField { objectType = typeof(InkFile), value = AssetDatabase.LoadAssetAtPath<InkFile>(path) };
+				field.SetEnabled(false);
+				root.Add(field);
 			}
 		}
 
-		static void DrawDates (InkFile inkFile, string assetPath) {
+		static Foldout BuildTextFoldout (string label, string text) {
+			var foldout = new Foldout { text = label, value = false };
+			var field = new TextField { multiline = true, isReadOnly = true, value = text ?? string.Empty };
+			field.style.maxHeight = 200;
+			foldout.Add(field);
+			return foldout;
+		}
+
+		static string BuildDates (InkFile inkFile, string assetPath) {
 			var sb = new StringBuilder();
 			try { sb.Append("Last edit: ").Append(File.GetLastWriteTime(InkEditorUtils.UnityRelativeToAbsolutePath(assetPath))); }
 			catch { /* file may be gone mid-edit */ }
 			if (inkFile.compileDate.HasValue) sb.Append("\nLast compile: ").Append(inkFile.compileDate.Value);
-			if (sb.Length > 0) EditorGUILayout.HelpBox(sb.ToString(), MessageType.None);
+			return sb.ToString();
 		}
 
 		static string ReadSource (string assetPath) {
 			try {
 				var source = File.ReadAllText(InkEditorUtils.UnityRelativeToAbsolutePath(assetPath));
 				return source.Length > maxPreviewChars ? source.Substring(0, maxPreviewChars) + "\n…" : source;
-			} catch { return ""; }
+			} catch { return string.Empty; }
 		}
 	}
 }

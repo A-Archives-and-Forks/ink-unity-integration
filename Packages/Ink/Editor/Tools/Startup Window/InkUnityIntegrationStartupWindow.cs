@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Ink.UnityIntegration {
 	/// <summary>
@@ -13,8 +14,7 @@ namespace Ink.UnityIntegration {
 	public class InkUnityIntegrationStartupWindow : EditorWindow {
 		const string editorPrefsKeyForVersionSeen = "Ink Unity Integration Startup Window Version Confirmed";
 		const int announcementVersion = 2;
-		
-		Vector2 scrollPosition;
+
 		static int announcementVersionPreviouslySeen;
 		static string changelogText;
 
@@ -22,94 +22,91 @@ namespace Ink.UnityIntegration {
 			EditorApplication.delayCall += TryCreateWindow;
 		}
 
-		static void TryCreateWindow() {
+		static void TryCreateWindow () {
 			if (InkSettings.instance.suppressStartupWindow) return;
 			announcementVersionPreviouslySeen = EditorPrefs.GetInt(editorPrefsKeyForVersionSeen, -1);
-			if(announcementVersion != announcementVersionPreviouslySeen) {
+			if (announcementVersion != announcementVersionPreviouslySeen) {
 				ShowWindow();
 			}
 		}
-		
-        public static void ShowWindow () {
-            InkUnityIntegrationStartupWindow window = GetWindow(typeof(InkUnityIntegrationStartupWindow), true, "Ink Update "+InkEditorUtils.unityIntegrationVersionCurrent, true) as InkUnityIntegrationStartupWindow;
-            window.minSize = new Vector2(200, 200);
-            var size = new Vector2(520, 320);
-            window.position = new Rect((Screen.currentResolution.width-size.x) * 0.5f, (Screen.currentResolution.height-size.y) * 0.5f, size.x, size.y);
-            EditorPrefs.SetInt(editorPrefsKeyForVersionSeen, announcementVersion);
-        }
 
-        void OnEnable() {
-	        var packageDirectory = InkEditorUtils.FindAbsolutePluginDirectory();
-	        changelogText = File.ReadAllText(Path.Combine(packageDirectory, "CHANGELOG.md"));
-        }
-        
-		void OnGUI ()
-		{
-			EditorGUILayout.BeginVertical();
-			var areaSize = new Vector2(90,90);
-			GUILayout.BeginArea(new Rect((position.width-areaSize.x)*0.5f, 15, areaSize.x, areaSize.y));
-			EditorGUILayout.BeginVertical();
-			EditorGUILayout.LabelField(new GUIContent(InkEditorUtils.inkLogoIcon), GUILayout.Width(areaSize.x), GUILayout.Height(areaSize.x*((float)InkEditorUtils.inkLogoIcon.height/InkEditorUtils.inkLogoIcon.width)));
-			GUILayout.Space(5);
-			EditorGUILayout.LabelField("Version "+InkEditorUtils.unityIntegrationVersionCurrent, EditorStyles.centeredGreyMiniLabel);
-			EditorGUILayout.LabelField("Ink version "+InkEditorUtils.inkVersionCurrent, EditorStyles.centeredGreyMiniLabel);
-			EditorGUILayout.EndVertical();
-			GUILayout.EndArea();
+		public static void ShowWindow () {
+			var window = GetWindow(typeof(InkUnityIntegrationStartupWindow), true, "Ink Update " + InkEditorUtils.unityIntegrationVersionCurrent, true) as InkUnityIntegrationStartupWindow;
+			window.minSize = new Vector2(200, 200);
+			var size = new Vector2(520, 320);
+			window.position = new Rect((Screen.currentResolution.width - size.x) * 0.5f, (Screen.currentResolution.height - size.y) * 0.5f, size.x, size.y);
+			EditorPrefs.SetInt(editorPrefsKeyForVersionSeen, announcementVersion);
+		}
 
+		void OnEnable () {
+			var packageDirectory = InkEditorUtils.FindAbsolutePluginDirectory();
+			if (packageDirectory != null) {
+				var changelogPath = Path.Combine(packageDirectory, "CHANGELOG.md");
+				if (File.Exists(changelogPath)) changelogText = File.ReadAllText(changelogPath);
+			}
+		}
 
-			GUILayout.Space(20+areaSize.y);
-			
-			if(announcementVersionPreviouslySeen == -1) {
-				EditorGUILayout.BeginVertical(GUI.skin.box);
-				EditorGUILayout.LabelField("New to ink?", EditorStyles.boldLabel);
-				EditorGUILayout.EndVertical();
+		void CreateGUI () {
+			var root = rootVisualElement;
+			root.style.paddingTop = 10;
+			root.style.paddingLeft = 10;
+			root.style.paddingRight = 10;
+			root.style.paddingBottom = 10;
+
+			if (InkEditorUtils.inkLogoIcon != null) {
+				var logo = new Image { image = InkEditorUtils.inkLogoIcon, scaleMode = ScaleMode.ScaleToFit };
+				logo.style.height = 80;
+				logo.style.marginBottom = 4;
+				root.Add(logo);
+			}
+			root.Add(CenteredGrey("Version " + InkEditorUtils.unityIntegrationVersionCurrent));
+			root.Add(CenteredGrey("Ink version " + InkEditorUtils.inkVersionCurrent));
+
+			if (announcementVersionPreviouslySeen == -1) {
+				var newToInk = new Label("New to ink?");
+				newToInk.style.unityFontStyleAndWeight = FontStyle.Bold;
+				newToInk.style.marginTop = 6;
+				root.Add(newToInk);
 			}
 
-			{
-				EditorGUILayout.BeginHorizontal();
-			
-				if (GUILayout.Button("About Ink")) {
-					Application.OpenURL("https://www.inklestudios.com/ink/");
-				}
-				if (GUILayout.Button("❤️Support Us!❤️")) {
-					Application.OpenURL("https://www.patreon.com/inkle");
-				}
-				if (GUILayout.Button("Discord Community+Support")) {
-					Application.OpenURL("https://discord.gg/inkle");
-				}
-				if (GUILayout.Button("Close")) {
-					Close();
-				}
-				EditorGUILayout.EndHorizontal();
-			}
+			var buttons = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = 8 } };
+			buttons.Add(Grow(new Button(() => Application.OpenURL("https://www.inklestudios.com/ink/")) { text = "About Ink" }));
+			buttons.Add(Grow(new Button(() => Application.OpenURL("https://www.patreon.com/inkle")) { text = "❤️ Support Us! ❤️" }));
+			buttons.Add(Grow(new Button(() => Application.OpenURL("https://discord.gg/inkle")) { text = "Discord Community + Support" }));
+			buttons.Add(Grow(new Button(Close) { text = "Close" }));
+			root.Add(buttons);
 
-			EditorGUILayout.Space();
-			
-			if(changelogText != null) {
-				scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-				
-				var versionSections = Regex.Split(changelogText, "## "); // Split markdown text into version sections
-				foreach (var section in versionSections) {
+			if (!string.IsNullOrEmpty(changelogText)) {
+				var scroll = new ScrollView { style = { flexGrow = 1, marginTop = 8 } };
+				foreach (var section in Regex.Split(changelogText, "## ")) {
 					if (string.IsNullOrWhiteSpace(section)) continue;
-
-					var lines = section.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries); // Split each section into lines
-					var version = lines[0]; // First line is version
-
-					EditorGUILayout.BeginVertical(GUI.skin.box);
-					EditorGUILayout.LabelField($"{version}", EditorStyles.boldLabel);
+					var lines = section.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+					var box = new VisualElement { style = { marginBottom = 6 } };
+					var version = new Label(lines[0]);
+					version.style.unityFontStyleAndWeight = FontStyle.Bold;
+					box.Add(version);
 					for (int i = 1; i < lines.Length; i++) {
-						var bulletPoint = lines[i].TrimStart('-').TrimStart(' ');
-						EditorGUILayout.LabelField($"• {bulletPoint}", EditorStyles.wordWrappedLabel);
+						var bullet = new Label("• " + lines[i].TrimStart('-').TrimStart(' '));
+						bullet.style.whiteSpace = WhiteSpace.Normal;
+						box.Add(bullet);
 					}
-
-					EditorGUILayout.EndVertical();
+					scroll.Add(box);
 				}
-
-				EditorGUILayout.EndScrollView();
+				root.Add(scroll);
 			}
-			EditorGUILayout.Space();
+		}
 
-			EditorGUILayout.EndVertical();
+		static Label CenteredGrey (string text) {
+			var label = new Label(text);
+			label.style.unityTextAlign = TextAnchor.MiddleCenter;
+			label.style.color = new Color(0.5f, 0.5f, 0.5f);
+			label.style.fontSize = 10;
+			return label;
+		}
+
+		static T Grow<T> (T element) where T : VisualElement {
+			element.style.flexGrow = 1;
+			return element;
 		}
 	}
 }

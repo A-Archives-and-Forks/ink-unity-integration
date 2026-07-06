@@ -1,43 +1,41 @@
 using UnityEditor;
-using UnityEngine;
+using UnityEditor.UIElements;
+using UnityEngine.UIElements;
 
 namespace Ink.UnityIntegration {
 	/// <summary>
-	/// Default drawer for InkFile reference fields. Draws the normal object field and, if the assigned
-	/// InkFile has no compiled story (an include file, or one that failed to compile), shows a warning —
-	/// so it's obvious when a slot has been given a file that can't be turned into a Story at runtime.
+	/// Default drawer for InkFile reference fields. Draws the object field and, when the assigned InkFile
+	/// has no compiled story (an include file, or one that failed to compile), shows a warning — so it's
+	/// obvious when a slot has a file that can't be turned into a Story at runtime.
 	/// </summary>
 	[CustomPropertyDrawer(typeof(InkFile))]
 	public class InkFilePropertyDrawer : PropertyDrawer {
-		const float spacing = 2f;
+		public override VisualElement CreatePropertyGUI (SerializedProperty property) {
+			var root = new VisualElement();
 
-		public override void OnGUI (Rect position, SerializedProperty property, GUIContent label) {
-			EditorGUI.BeginProperty(position, label, property);
+			// An ObjectField (not a PropertyField) so we don't recursively invoke this drawer.
+			var objectField = new ObjectField(property.displayName) {
+				objectType = typeof(InkFile),
+				allowSceneObjects = false,
+			};
+			objectField.BindProperty(property);
+			root.Add(objectField);
 
-			var fieldRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-			// Use ObjectField (not PropertyField) to avoid recursively invoking this drawer.
-			property.objectReferenceValue = EditorGUI.ObjectField(
-				fieldRect, label, property.objectReferenceValue, typeof(InkFile), false);
+			var warning = new HelpBox(string.Empty, HelpBoxMessageType.Warning);
+			root.Add(warning);
 
-			var inkFile = property.objectReferenceValue as InkFile;
-			if (inkFile != null && !inkFile.isCompiled) {
-				var warnRect = new Rect(position.x, fieldRect.yMax + spacing, position.width,
-					position.height - EditorGUIUtility.singleLineHeight - spacing);
-				EditorGUI.HelpBox(warnRect, inkFile.isMaster
-					? "This ink file hasn't compiled to a story (it may have errors)."
-					: "This is an INCLUDE file with no story of its own. Assign a master ink file instead.",
-					MessageType.Warning);
+			void Refresh (InkFile inkFile) {
+				bool show = inkFile != null && !inkFile.isCompiled;
+				warning.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+				if (show)
+					warning.text = inkFile.isMaster
+						? "This ink file hasn't compiled to a story (it may have errors)."
+						: "This is an INCLUDE file with no story of its own. Assign a master ink file instead.";
 			}
 
-			EditorGUI.EndProperty();
-		}
-
-		public override float GetPropertyHeight (SerializedProperty property, GUIContent label) {
-			var height = EditorGUIUtility.singleLineHeight;
-			var inkFile = property.objectReferenceValue as InkFile;
-			if (inkFile != null && !inkFile.isCompiled)
-				height += spacing + EditorGUIUtility.singleLineHeight * 2f;
-			return height;
+			Refresh(property.objectReferenceValue as InkFile);
+			objectField.RegisterValueChangedCallback(evt => Refresh(evt.newValue as InkFile));
+			return root;
 		}
 	}
 }

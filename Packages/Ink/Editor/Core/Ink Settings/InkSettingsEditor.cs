@@ -1,168 +1,96 @@
-﻿using UnityEngine;
 using UnityEditor;
-using System.Collections.Generic;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Ink.UnityIntegration {
-
 	/// <summary>
-	/// Draws the ink settings, both as the InkSettings asset's inspector and in the Project Settings ▸ Ink page.
+	/// Draws the ink settings, both as the InkSettings asset's inspector and in the Project Settings ▸ Ink page,
+	/// sharing a single UI Toolkit tree between the two.
 	/// </summary>
 	[CustomEditor(typeof(InkSettings))]
 	public class InkSettingsEditor : Editor {
-
-		#pragma warning disable
-		protected InkSettings data;
-		
-		public void OnEnable() {
-			data = (InkSettings) target;
+		public override VisualElement CreateInspectorGUI () {
+			return BuildUI(serializedObject);
 		}
-		
-		public override void OnInspectorGUI() {
-			serializedObject.Update();
-
-			DrawSettings(serializedObject);
-
-			if (GUI.changed && target != null) {
-				EditorUtility.SetDirty(target);
-				((InkSettings) target).Save(true);
-			}
-			serializedObject.ApplyModifiedProperties();
-	    }
 
 		[SettingsProvider]
-		public static SettingsProvider CreateInkSettingsProvider() {
-			// First parameter is the path in the Settings window.
-			// Second parameter is the scope of this setting: it only appears in the Project Settings window.
-			var provider = new SettingsProvider("Project/Ink", SettingsScope.Project) {
-				// By default the last token of the path is used as display name if no label is provided.
+		public static SettingsProvider CreateInkSettingsProvider () {
+			return new SettingsProvider("Project/Ink", SettingsScope.Project) {
 				label = "Ink",
-				// Create the SettingsProvider and initialize its drawing (IMGUI) function in place:
-				guiHandler = (searchContext) => {
-                    // Drawing the SO makes them disabled, and I have no idea why. Drawing manually until fixed.
-					// var settings = InkSettings.GetSerializedSettings();
-					DrawSettings(InkSettings.instance);
-				},
-
-				// Populate the search keywords to enable smart search filtering and label highlighting:
-				// keywords = new HashSet<string>(new[] { "Number", "Some String" })
+				activateHandler = (searchContext, rootElement) => rootElement.Add(BuildUI(InkSettings.GetSerializedSettings())),
 			};
-			return provider;
 		}
 
-        static void DrawSettings (InkSettings settings) {
-	        EditorGUI.BeginChangeCheck();
-	        
-	        EditorGUI.indentLevel++;
-			DrawVersions();
-			EditorGUILayout.Separator();
+		static VisualElement BuildUI (SerializedObject settings) {
+			var root = new VisualElement { style = { marginTop = 4, marginLeft = 4, marginRight = 4 } };
 
-			var cachedLabelWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = 260;
+			root.Add(BuildVersionInfo());
+			root.Add(Header("Settings"));
 
-			EditorGUILayout.LabelField(new GUIContent("Settings"), EditorStyles.boldLabel);
-			if(settings.templateFile == null) 
-				DrawTemplateMissingWarning();
-			settings.templateFile = (DefaultAsset)EditorGUILayout.ObjectField(new GUIContent("Ink Template", "Optional. The default content of files created via Assets > Create > Ink."), settings.templateFile, typeof(DefaultAsset));
-      
-            settings.printInkLogsInConsoleOnCompile = EditorGUILayout.Toggle(new GUIContent("Print ink TODOs in console on compile", "When enabled, ink lines starting with TODO are printed in the console."), settings.printInkLogsInConsoleOnCompile);
-			settings.suppressStartupWindow = EditorGUILayout.Toggle(new GUIContent("Suppress Startup Window", "Prevent the \"what's new\" (the one that appears if you click the \"Show changelog\" button above) appearing when the version of this plugin has changed and Unity is opened. This can be useful for CI/CD pipelines, where auto-launching editor windows can fail to load due to a Unity bug."), settings.suppressStartupWindow);
-			settings.automaticallyAddDefineSymbols = EditorGUILayout.Toggle(new GUIContent("Add define symbols", "If true, automatically adds INK_EDITOR and INK_RUNTIME to the define symbols in the build settings. This is handy for conditional code."), settings.automaticallyAddDefineSymbols);
-			//// DrawDefineManagerButtons();
-			
-			EditorGUILayout.Separator();
-			DrawRequestButton();
+			var templateProp = settings.FindProperty("templateFile");
+			var templateWarning = new HelpBox("Template not found. Ink files created via Assets > Create > Ink will be blank.", HelpBoxMessageType.Info);
+			root.Add(templateWarning);
 
-			EditorGUIUtility.labelWidth = cachedLabelWidth;
-			EditorGUI.indentLevel--;
-			
-			if (EditorGUI.EndChangeCheck()) {
-				if (settings.automaticallyAddDefineSymbols) InkDefineSymbols.AddGlobalDefine();
+			var template = new PropertyField(templateProp, "Ink Template") { tooltip = "Optional. The default content of files created via Assets > Create > Ink." };
+			root.Add(template);
+			root.Add(new PropertyField(settings.FindProperty("printInkLogsInConsoleOnCompile"), "Print ink TODOs in console on compile") { tooltip = "When enabled, ink lines starting with TODO are printed in the console." });
+			root.Add(new PropertyField(settings.FindProperty("suppressStartupWindow"), "Suppress Startup Window") { tooltip = "Prevent the \"what's new\" window appearing when the plugin version changes. Useful for CI/CD." });
+
+			var defineProp = settings.FindProperty("automaticallyAddDefineSymbols");
+			root.Add(new PropertyField(defineProp, "Add define symbols") { tooltip = "Automatically adds INK_EDITOR and INK_RUNTIME to the scripting define symbols." });
+
+			root.Add(Header("Support + Requests"));
+			root.Add(BuildRequestButtons());
+
+			// Bind the fields, keep the template warning in sync, apply the define-symbol side effect, and
+			// persist changes (InkSettings uses a custom save, so binding alone doesn't write to disk).
+			root.Bind(settings);
+			void RefreshTemplateWarning () => templateWarning.style.display = templateProp.objectReferenceValue == null ? DisplayStyle.Flex : DisplayStyle.None;
+			RefreshTemplateWarning();
+			root.TrackSerializedObjectValue(settings, so => {
+				RefreshTemplateWarning();
+				if (defineProp.boolValue) InkDefineSymbols.AddGlobalDefine();
 				else InkDefineSymbols.RemoveGlobalDefine();
-				
-				EditorUtility.SetDirty(settings);
-				settings.Save(true);
-			}
-		}
-        
-		static void DrawSettings (SerializedObject settings) {
-			DrawVersions();
-			EditorGUILayout.Separator();
-
-			var cachedLabelWidth = EditorGUIUtility.labelWidth;
-			EditorGUIUtility.labelWidth = 260;
-			EditorGUI.BeginChangeCheck();
-
-			EditorGUILayout.LabelField(new GUIContent("Settings"), EditorStyles.boldLabel);
-			if(settings.FindProperty("templateFile").objectReferenceValue == null) 
-				DrawTemplateMissingWarning();
-			
-			EditorGUILayout.PropertyField(settings.FindProperty("templateFile"), new GUIContent("Ink Template", "Optional. The default content of files created via Assets > Create > Ink."));
-            EditorGUILayout.PropertyField(settings.FindProperty("printInkLogsInConsoleOnCompile"), new GUIContent("Print ink TODOs in console on compile", "When enabled, ink lines starting with TODO are printed in the console."));
-			EditorGUILayout.PropertyField(settings.FindProperty("suppressStartupWindow"), new GUIContent("Suppress Startup Window", "Prevent the \"what's new\" (the one that appears if you click the \"Show changelog\" button above) appearing when the version of this plugin has changed and Unity is opened. This can be useful for CI/CD pipelines, where auto-launching editor windows can fail to load due to a Unity bug."));
-            EditorGUILayout.PropertyField(settings.FindProperty("automaticallyAddDefineSymbols"), new GUIContent("Add define symbols", "If true, automatically adds INK_EDITOR and INK_RUNTIME to the define symbols in the build settings. This is handy for conditional code."));
-			//DrawDefineManagerButtons();
-			
-			EditorGUIUtility.labelWidth = cachedLabelWidth;
-			
-			EditorGUILayout.Separator();
-			DrawRequestButton();
-            
-			if(EditorGUI.EndChangeCheck()) {
-	            if (settings.FindProperty("automaticallyAddDefineSymbols").boolValue) InkDefineSymbols.AddGlobalDefine();
-	            else InkDefineSymbols.RemoveGlobalDefine();
-	            
-				settings.ApplyModifiedProperties();
-            }
+				(so.targetObject as InkSettings)?.Save(true);
+			});
+			return root;
 		}
 
-
-		static void DrawVersions () {
-			EditorGUILayout.LabelField(new GUIContent("Version Info"), EditorStyles.boldLabel);
-			EditorGUI.BeginDisabledGroup(true);
-			EditorGUILayout.TextField(new GUIContent("Plugin version", "The version of the Ink Unity Integration package."), InkEditorUtils.unityIntegrationVersionCurrent.ToString());
-			EditorGUILayout.TextField(new GUIContent("Ink version", "The version of ink that is included by the Unity package, used to compile and play ink files."), InkEditorUtils.inkVersionCurrent.ToString());
-			EditorGUILayout.TextField(new GUIContent("Ink story format version", "Significant changes to the Ink runtime are recorded by the story format version.\nCompatibility between different versions is limited; see comments at Ink.Runtime.Story.inkVersionCurrent for more details."), Ink.Runtime.Story.inkVersionCurrent.ToString());
-			EditorGUILayout.TextField(new GUIContent("Ink save format version", "Version of the ink save/load system.\nCompatibility between different versions is limited; see comments at Ink.Runtime.StoryState.kInkSaveStateVersion for more details."), Ink.Runtime.StoryState.kInkSaveStateVersion.ToString());
-			EditorGUI.EndDisabledGroup();
-			if (GUILayout.Button("Show changelog", GUILayout.Width(140))) {
-				InkUnityIntegrationStartupWindow.ShowWindow();
-			}
+		static Label Header (string text) {
+			var label = new Label(text);
+			label.style.unityFontStyleAndWeight = FontStyle.Bold;
+			label.style.marginTop = 6;
+			return label;
 		}
 
-		static void DrawDefineManagerButtons() {
-			EditorGUILayout.LabelField(new GUIContent("Defines"), EditorStyles.boldLabel);
-			var hasDefines = InkDefineSymbols.HasGlobalDefines();
-			EditorGUILayout.HelpBox("Adds INK_RUNTIME and INK_EDITOR #defines to the project for the current Build Target.", MessageType.Info);
-			EditorGUI.BeginDisabledGroup(hasDefines);
-			if (GUILayout.Button(new GUIContent("Add Global Define", "Adds INK_RUNTIME and INK_EDITOR defines to your ProjectSettings for the current Build Target."))) {
-				InkDefineSymbols.AddGlobalDefine();
-			}
-			EditorGUI.EndDisabledGroup();
-			EditorGUI.BeginDisabledGroup(!hasDefines);
-			if (GUILayout.Button(new GUIContent("Remove Global Define", "Removes INK_RUNTIME and INK_EDITOR defines from your ProjectSettings for the current Build Target."))) {
-				InkDefineSymbols.RemoveGlobalDefine();
-			}
-			EditorGUI.EndDisabledGroup();
-		}
-		
-		static void DrawRequestButton() {
-			EditorGUILayout.LabelField(new GUIContent("Support + Requests"), EditorStyles.boldLabel);
-			
-			EditorGUILayout.LabelField("Is there a setting you'd like? Or a feature you'd like to request?");
-			// EditorGUILayout.BeginVertical(GUILayout.Width(220));
-			EditorGUILayout.BeginHorizontal();
-            if(GUILayout.Button("Reach us on Discord", GUILayout.Width(220))) {
-                Application.OpenURL("https://discord.gg/inkle");
-            }
-            if(GUILayout.Button("Submit an issue on GitHub", GUILayout.Width(220))) {
-                Application.OpenURL("https://github.com/inkle/ink-unity-integration/issues/new");
-            }
-			EditorGUILayout.EndHorizontal();
-			// EditorGUILayout.EndVertical();
+		static VisualElement BuildVersionInfo () {
+			var root = new VisualElement();
+			root.Add(Header("Version Info"));
+			root.Add(ReadOnlyText("Plugin version", InkEditorUtils.unityIntegrationVersionCurrent.ToString()));
+			root.Add(ReadOnlyText("Ink version", InkEditorUtils.inkVersionCurrent.ToString()));
+			root.Add(ReadOnlyText("Ink story format version", Ink.Runtime.Story.inkVersionCurrent.ToString()));
+			root.Add(ReadOnlyText("Ink save format version", Ink.Runtime.StoryState.kInkSaveStateVersion.ToString()));
+			var changelog = new Button(InkUnityIntegrationStartupWindow.ShowWindow) { text = "Show changelog" };
+			changelog.style.width = 140;
+			root.Add(changelog);
+			return root;
 		}
 
-		static void DrawTemplateMissingWarning () {
-			EditorGUILayout.HelpBox("Template not found. Ink files created via Assets > Create > Ink will be blank.", MessageType.Info);
+		static TextField ReadOnlyText (string label, string value) {
+			var field = new TextField(label) { value = value, isReadOnly = true };
+			field.SetEnabled(false);
+			return field;
+		}
+
+		static VisualElement BuildRequestButtons () {
+			var root = new VisualElement();
+			root.Add(new Label("Is there a setting you'd like? Or a feature you'd like to request?"));
+			var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
+			row.Add(new Button(() => Application.OpenURL("https://discord.gg/inkle")) { text = "Reach us on Discord", style = { flexGrow = 1 } });
+			row.Add(new Button(() => Application.OpenURL("https://github.com/inkle/ink-unity-integration/issues/new")) { text = "Submit an issue on GitHub", style = { flexGrow = 1 } });
+			root.Add(row);
+			return root;
 		}
 	}
 }
