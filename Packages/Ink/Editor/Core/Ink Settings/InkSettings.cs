@@ -3,18 +3,13 @@ using UnityEditor;
 using System.Collections.Generic;
 using Debug = UnityEngine.Debug;
 
-/// <summary>
-/// Holds a reference to an InkFileMetadata object for every .ink file detected in the Assets folder.
-/// Provides helper functions to easily obtain these files.
-/// ScriptableSingleton doesn't reload when the backing file changes, which means if you pull changes via source control you need to make unity recompile before it'll load the change.
-/// </summary>
 namespace Ink.UnityIntegration {
-    // #if UNITY_2020_1_OR_NEWER
-    // [FilePath("ProjectSettings/InkSettings.asset", FilePathAttribute.Location.ProjectFolder)]
-	// public class InkSettings : ScriptableSingleton<InkSettings> {
-    // #else
+	/// <summary>
+	/// Project-wide ink settings, stored in ProjectSettings/InkSettings.asset and edited via
+	/// Project Settings > Ink. Note: this singleton doesn't reload when its backing file changes, so
+	/// pulling changes from source control may need an editor recompile before they take effect.
+	/// </summary>
 	public class InkSettings : ScriptableObject {
-    // #endif
         // #if !UNITY_2020_1_OR_NEWER
 		public static bool created {
 			get {

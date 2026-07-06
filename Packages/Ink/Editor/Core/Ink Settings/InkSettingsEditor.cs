@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace Ink.UnityIntegration {
 
+	/// <summary>
+	/// Draws the ink settings, both as the InkSettings asset's inspector and in the Project Settings ▸ Ink page.
+	/// </summary>
 	[CustomEditor(typeof(InkSettings))]
 	public class InkSettingsEditor : Editor {
 

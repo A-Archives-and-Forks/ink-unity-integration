@@ -2,12 +2,12 @@
 using UnityEditor;
 using UnityEngine;
 
-/* 
-* This script allows you to set custom icons for folders in project browser.
-* Recommended icon sizes - small: 16x16 px, large: 64x64 px;
-*/
-
 namespace Ink.UnityIntegration {
+	/// <summary>
+	/// Loads the ink file icons and overlays state badges (error / warning / todo / include) on .ink files
+	/// in the Project window. The base ink icon itself is set on the imported InkFile asset by InkImporter,
+	/// so it shows everywhere; this overlay only adds the badges on top.
+	/// </summary>
 	[InitializeOnLoad]
 	public class InkBrowserIcons {
 		// macOS editors use the @2x (retina) variant of the file icon.

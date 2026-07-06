@@ -5,6 +5,10 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Ink.UnityIntegration {
+	/// <summary>
+	/// The "what's new" window shown once after the plugin updates (unless suppressed in Ink settings).
+	/// Displays the changelog; also opened via the "Show changelog" button in Project Settings ▸ Ink.
+	/// </summary>
 	[InitializeOnLoad]
 	public class InkUnityIntegrationStartupWindow : EditorWindow {
 		const string editorPrefsKeyForVersionSeen = "Ink Unity Integration Startup Window Version Confirmed";
