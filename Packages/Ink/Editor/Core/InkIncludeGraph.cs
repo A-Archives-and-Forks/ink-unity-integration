@@ -10,18 +10,21 @@ namespace Ink.UnityIntegration {
 	/// master detection, includes / included-by lookups and recursive-include detection — the caching
 	/// role InkLibrary used to serve, but without the old compilation queue or per-file metadata objects.
 	///
-	/// It also records each file's master status on its InkImporter (isMasterFile) so masters compile
-	/// and includes don't. A .ink file is a master unless another .ink file INCLUDEs it.
+	/// Ink resolves every INCLUDE path (even in nested includes) relative to the master/root file, so the
+	/// graph is built by walking each file's include tree "as if it were the master", resolving against
+	/// that root's directory (matching the old InkLibrary.BuildIncludeHierarchyAsIfMasterFile). A file is
+	/// a master unless it's reached as an include of some file; that status is recorded on its InkImporter.
 	/// </summary>
 	[InitializeOnLoad]
 	class InkIncludeGraph : AssetPostprocessor {
-		// file path -> the paths it directly INCLUDEs (resolved; may contain paths that don't exist).
-		static Dictionary<string, string[]> _directIncludes;
-		// file path -> the files that directly INCLUDE it.
+		// file -> the files it directly INCLUDEs (resolved in a master's context; existing files only).
+		static Dictionary<string, List<string>> _directIncludes;
+		// file -> the root files whose include tree contains it.
 		static Dictionary<string, List<string>> _includedBy;
+		// files that are included by some other file (i.e. not masters).
+		static HashSet<string> _included;
 
 		static InkIncludeGraph () {
-			// Populate the cache once the editor has loaded.
 			EditorApplication.delayCall += EnsureBuilt;
 		}
 
@@ -30,7 +33,6 @@ namespace Ink.UnityIntegration {
 				|| deleted.Any(InkEditorUtils.IsInkFile)
 				|| moved.Any(InkEditorUtils.IsInkFile)
 				|| movedFrom.Any(InkEditorUtils.IsInkFile);
-			// Defer so we don't reimport while Unity is still inside the current import batch.
 			if (inkChanged) EditorApplication.delayCall += Rebuild;
 		}
 
@@ -43,26 +45,23 @@ namespace Ink.UnityIntegration {
 				.Select(AssetDatabase.GUIDToAssetPath)
 				.Where(p => !string.IsNullOrEmpty(p))
 				.ToList();
+			var allSet = new HashSet<string>(allInkPaths);
 
-			_directIncludes = new Dictionary<string, string[]>();
+			_directIncludes = new Dictionary<string, List<string>>();
 			_includedBy = new Dictionary<string, List<string>>();
-			foreach (var path in allInkPaths) {
-				var includes = InkImporter.GetDirectIncludePaths(path).ToArray();
-				_directIncludes[path] = includes;
-				foreach (var include in includes) {
-					if (!_includedBy.TryGetValue(include, out var list)) {
-						list = new List<string>();
-						_includedBy[include] = list;
-					}
-					if (!list.Contains(path)) list.Add(path);
-				}
+			_included = new HashSet<string>();
+
+			// Walk every file's include tree as if it were the master, resolving relative to its directory.
+			foreach (var root in allInkPaths) {
+				var rootDir = System.IO.Path.GetDirectoryName(root)?.Replace('\\', '/');
+				Traverse(root, root, rootDir, allSet, new HashSet<string>());
 			}
 
-			// Record master status on each importer; reimport only files whose status changed.
+			// A file is a master unless some root's tree includes it. Record on the importer, reimport changes.
 			var toReimport = new List<string>();
 			foreach (var path in allInkPaths) {
 				if (!(AssetImporter.GetAtPath(path) is InkImporter importer)) continue;
-				bool shouldBeMaster = IsMaster(path);
+				bool shouldBeMaster = !_included.Contains(path);
 				if (importer.IsMasterFile != shouldBeMaster) {
 					var so = new SerializedObject(importer);
 					so.FindProperty("isMasterFile").boolValue = shouldBeMaster;
@@ -80,22 +79,41 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
+		static void Traverse (string root, string current, string rootDir, HashSet<string> allSet, HashSet<string> stack) {
+			if (!stack.Add(current)) return; // recursive INCLUDE — stop; GetRecursiveIncludeErrorPaths reports it.
+			foreach (var raw in InkImporter.GetRawIncludes(current)) {
+				var resolved = InkImporter.ResolveIncludePath(rootDir, raw);
+				if (!allSet.Contains(resolved)) continue; // only edges to real files (wrong-context guesses miss)
+				AddEdge(_directIncludes, current, resolved);
+				AddEdge(_includedBy, resolved, root);
+				_included.Add(resolved);
+				Traverse(root, resolved, rootDir, allSet, stack);
+			}
+			stack.Remove(current);
+		}
+
+		static void AddEdge (Dictionary<string, List<string>> map, string key, string value) {
+			if (!map.TryGetValue(key, out var list)) { list = new List<string>(); map[key] = list; }
+			if (!list.Contains(value)) list.Add(value);
+		}
+
 		// ---- Fast cached queries (used by the inspector) ----
 
-		/// <summary>A file is a master unless another file INCLUDEs it.</summary>
 		public static bool IsMaster (string assetPath) {
 			EnsureBuilt();
-			return !_includedBy.ContainsKey(assetPath);
+			return !_included.Contains(assetPath);
 		}
 
 		public static IReadOnlyList<string> GetDirectIncludes (string assetPath) {
 			EnsureBuilt();
-			return _directIncludes.TryGetValue(assetPath, out var v) ? v : Array.Empty<string>();
+			return _directIncludes.TryGetValue(assetPath, out var v) ? v : (IReadOnlyList<string>)Array.Empty<string>();
 		}
 
+		/// <summary>The master files whose include tree contains this file.</summary>
 		public static IReadOnlyList<string> GetIncludedBy (string assetPath) {
 			EnsureBuilt();
-			return _includedBy.TryGetValue(assetPath, out var v) ? (IReadOnlyList<string>)v : Array.Empty<string>();
+			if (!_includedBy.TryGetValue(assetPath, out var roots)) return Array.Empty<string>();
+			return roots.Where(IsMaster).ToList();
 		}
 
 		/// <summary>Returns include paths that form a recursive (circular) INCLUDE reachable from this file.</summary>

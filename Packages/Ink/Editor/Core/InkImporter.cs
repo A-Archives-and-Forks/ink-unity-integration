@@ -33,32 +33,43 @@ namespace Ink.UnityIntegration {
         /// thread before import, so reading files directly here is safe.
         /// </summary>
         public static string[] GatherDependenciesFromSourceFile (string assetPath) {
+            // Ink resolves ALL INCLUDE paths (even in nested includes) relative to the master/root file,
+            // so resolve everything against the root's directory as we walk the tree.
+            var rootDir = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
             var results = new List<string>();
-            var visited = new HashSet<string>();
-            CollectIncludes(assetPath, results, visited);
+            var visited = new HashSet<string> { assetPath };
+            CollectIncludes(assetPath, rootDir, results, visited);
             return results.ToArray();
         }
 
-        static void CollectIncludes (string assetPath, List<string> results, HashSet<string> visited) {
-            if (!visited.Add(assetPath)) return;
-            foreach (var includePath in GetDirectIncludePaths(assetPath)) {
-                if (!results.Contains(includePath)) results.Add(includePath);
-                CollectIncludes(includePath, results, visited);
+        static void CollectIncludes (string current, string rootDir, List<string> results, HashSet<string> visited) {
+            foreach (var raw in GetRawIncludes(current)) {
+                var includePath = ResolveIncludePath(rootDir, raw);
+                if (!visited.Add(includePath)) continue;
+                results.Add(includePath);
+                CollectIncludes(includePath, rootDir, results, visited);
             }
         }
 
-        /// <summary>
-        /// Returns the project-relative paths of the files this .ink file directly INCLUDEs.
-        /// Used both for dependency tracking and by InkMasterFileDetector to build the include graph.
-        /// </summary>
-        public static IEnumerable<string> GetDirectIncludePaths (string assetPath) {
+        /// <summary>The raw (unresolved) INCLUDE target strings written in a .ink file.</summary>
+        public static IEnumerable<string> GetRawIncludes (string assetPath) {
             string text;
             try { text = File.ReadAllText(assetPath); }
             catch { yield break; }
+            foreach (var include in InkIncludeParser.ParseIncludes(text)) yield return include;
+        }
+
+        /// <summary>Resolves an INCLUDE target (written relative to the master/root file) to a project path.</summary>
+        public static string ResolveIncludePath (string rootDir, string rawInclude) => NormalizeAssetPath(rootDir, rawInclude);
+
+        /// <summary>
+        /// The files this .ink file directly INCLUDEs, resolved relative to its own folder. Correct for a
+        /// master/root file. (Includes in nested files must be resolved relative to the master — see the
+        /// InkIncludeGraph, which walks the tree with the master's directory as the root.)
+        /// </summary>
+        public static IEnumerable<string> GetDirectIncludePaths (string assetPath) {
             var dir = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
-            foreach (var include in InkIncludeParser.ParseIncludes(text)) {
-                yield return NormalizeAssetPath(dir, include);
-            }
+            foreach (var raw in GetRawIncludes(assetPath)) yield return NormalizeAssetPath(dir, raw);
         }
 
         // Resolves an INCLUDE path (relative to the including file's folder) into a project-relative
