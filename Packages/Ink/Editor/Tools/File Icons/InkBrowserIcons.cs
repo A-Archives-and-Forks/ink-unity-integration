@@ -10,12 +10,8 @@ using UnityEngine;
 namespace Ink.UnityIntegration {
 	[InitializeOnLoad]
 	public class InkBrowserIcons {
-		private static bool isRetina {
-			get {
-				float unityVersion = float.Parse(Application.unityVersion.Substring (0, 3));
-				return Application.platform == RuntimePlatform.OSXEditor && unityVersion >= 5.4f;
-			}
-		}
+		// macOS editors use the @2x (retina) variant of the file icon.
+		private static bool isRetina => Application.platform == RuntimePlatform.OSXEditor;
 	    private const float largeIconSize = 64f;
 
 		private static Texture2D _inkFileIcon;
