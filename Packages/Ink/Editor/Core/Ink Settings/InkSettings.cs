@@ -70,13 +70,6 @@ namespace Ink.UnityIntegration {
 		}
 
 
-        public DefaultAsset defaultJsonAssetPath;
-		[UnityEngine.Serialization.FormerlySerializedAs("compileAutomatically")]
-        public bool compileAllFilesAutomatically = true;
-		public bool delayInPlayMode = true;
-		public bool handleJSONFilesAutomatically = true;
-
-		public int compileTimeout = 30;
 		
 		public bool printInkLogsInConsoleOnCompile;
 		

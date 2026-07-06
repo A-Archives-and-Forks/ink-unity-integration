@@ -112,6 +112,8 @@ namespace Ink.UnityIntegration {
                                     break;
                                 case ErrorType.Author:
                                     inkFile.todos.Add(log);
+                                    if (InkSettings.instance.printInkLogsInConsoleOnCompile)
+                                        Debug.Log($"Ink TODO for {fileName}: {log.content} (at {location})", inkFile);
                                     break;
                             }
                         } else {
