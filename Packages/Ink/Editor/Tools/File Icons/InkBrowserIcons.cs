@@ -104,5 +104,48 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
+		static InkBrowserIcons () {
+			EditorApplication.projectWindowItemOnGUI += OnDrawProjectWindowItem;
+		}
+
+		static void OnDrawProjectWindowItem (string guid, Rect rect) {
+			var path = AssetDatabase.GUIDToAssetPath(guid);
+			if (!InkEditorUtils.IsInkFile(path)) return;
+			// Read state straight off the imported InkFile asset (errors/warnings/todos and master/include).
+			var inkFile = AssetDatabase.LoadAssetAtPath<InkFile>(path);
+			if (inkFile == null) return;
+			DrawInkFile(inkFile, rect);
+		}
+
+		static void DrawInkFile (InkFile inkFile, Rect rect) {
+			bool isSmall = rect.width > rect.height;
+			if (isSmall) rect.width = rect.height;
+			else rect.height = rect.width;
+			if (rect.width >= largeIconSize) DrawLarge(inkFile, rect);
+			else DrawSmall(inkFile, rect);
+		}
+
+		static void DrawLarge (InkFile inkFile, Rect rect) {
+			var offset = (rect.width - largeIconSize) * 0.5f;
+			rect = new Rect(rect.x + offset, rect.y + offset, largeIconSize, largeIconSize);
+			if (inkFileIconLarge != null) GUI.DrawTexture(rect, inkFileIconLarge);
+			DrawStatusBadge(inkFile, new Rect(rect.center, rect.size * 0.5f));
+			if (!inkFile.isMaster && childIconLarge != null)
+				GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height * 0.5f), childIconLarge);
+		}
+
+		static void DrawSmall (InkFile inkFile, Rect rect) {
+			if (inkFileIcon != null) GUI.DrawTexture(rect, inkFileIcon);
+			DrawStatusBadge(inkFile, new Rect(rect.center, rect.size * 0.5f));
+			if (!inkFile.isMaster && childIcon != null)
+				GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height * 0.5f), childIcon);
+		}
+
+		static void DrawStatusBadge (InkFile inkFile, Rect rect) {
+			if (inkFile.hasErrors && errorIcon != null) GUI.DrawTexture(rect, errorIcon);
+			else if (inkFile.hasWarnings && warningIcon != null) GUI.DrawTexture(rect, warningIcon);
+			else if (inkFile.hasTodos && todoIcon != null) GUI.DrawTexture(rect, todoIcon);
+		}
+
 	}
 }

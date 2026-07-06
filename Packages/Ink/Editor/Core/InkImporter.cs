@@ -76,6 +76,7 @@ namespace Ink.UnityIntegration {
 
         public override void OnImportAsset (AssetImportContext ctx) {
             var inkFile = ScriptableObject.CreateInstance<InkFile>();
+            inkFile.SetIsMaster(isMasterFile);
 
             if (ShouldCompile) {
                 var absolutePath = InkEditorUtils.UnityRelativeToAbsolutePath(ctx.assetPath);
