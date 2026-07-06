@@ -22,5 +22,5 @@ jobs:
         uses: hecomi/create-upm-branch-action@main
         with:
           git-tag: ${{ steps.tag.outputs.name }}
-          pkg-root-dir-path: Packages/Ink
-          samples-dir: Packages/Ink/Demos
+          pkg-root-dir-path: Packages/com.inkle.ink-unity-integration
+          samples-dir: Packages/com.inkle.ink-unity-integration/Demos
