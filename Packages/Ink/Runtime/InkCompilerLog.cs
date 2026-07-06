@@ -3,6 +3,7 @@ using Debug = UnityEngine.Debug;
 
 namespace Ink.UnityIntegration
 {
+	/// <summary>A single compiler diagnostic (error, warning or TODO) parsed from the ink compiler output.</summary>
     [System.Serializable]
 	public class InkCompilerLog {
 		public Ink.ErrorType type;

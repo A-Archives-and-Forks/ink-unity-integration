@@ -3,8 +3,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Ink.UnityIntegration {
-	// Parses INCLUDE statements out of ink source text (ignoring commented-out ones).
-	// Used by InkImporter to declare include dependencies without loading assets.
+	/// <summary>
+	/// Parses INCLUDE statements out of ink source text (ignoring commented-out ones). Used to work out
+	/// the include graph without compiling.
+	/// </summary>
 	public static class InkIncludeParser {
 		static Regex _includeRegex;
 		static Regex includeRegex {
