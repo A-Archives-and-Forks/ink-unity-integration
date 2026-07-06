@@ -12,7 +12,7 @@ Ink files are now compiled by a Unity ScriptedImporter, replacing the old compil
 ### Migrating from 1.x — see MIGRATION.md
 1. Update to Unity 2022.3+.
 2. Reference the `.ink`'s `InkFile` instead of the `.json`, and use `new Story(inkFile.storyJson)`.
-3. Run **Assets ▸ Migrate Ink Project from 1.x** to delete the old `.json` files.
+3. Delete the old `.json` files with the **Migrate Ink Project from 1.x** button in Project Settings ▸ Ink (also offered in the Ink Update window).
 
 ## Version 1.3.0 (5th July 2026):
 - Updated Ink to 1.2.1

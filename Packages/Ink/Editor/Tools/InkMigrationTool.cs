@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -11,19 +12,21 @@ namespace Ink.UnityIntegration {
 	/// stored inside each .ink file's imported InkFile, so those .json files are no longer used. This tool
 	/// finds and deletes them. Reference rewiring can't be automated (a TextAsset field can't hold an
 	/// InkFile), so it also reminds you to update your code to reference InkFile / inkFile.storyJson.
+	///
+	/// It's offered contextually — in the Ink Update window and Project Settings ▸ Ink — only while legacy
+	/// .json files exist (see HasLegacyJson), so it disappears once a project has migrated.
 	/// </summary>
 	public static class InkMigrationTool {
 		const string codeReminder =
 			"Also update your scripts: reference the .ink file's InkFile (not the old TextAsset) and use " +
 			"new Story(inkFile.storyJson) instead of new Story(textAsset.text).";
 
-		[MenuItem("Assets/Migrate Ink Project from 1.x", false, 205)]
-		public static void Migrate () {
-			var oldJson = AssetDatabase.FindAssets("t:TextAsset")
-				.Select(AssetDatabase.GUIDToAssetPath)
-				.Where(p => p.EndsWith(".json") && IsCompiledInkJson(p))
-				.ToList();
+		/// <summary>True if the project still has compiled .json files left over from ink 1.x.</summary>
+		public static bool HasLegacyJson () => FindLegacyJson().Count > 0;
 
+		/// <summary>Finds and (after confirmation) deletes the leftover 1.x compiled .json files.</summary>
+		public static void Migrate () {
+			var oldJson = FindLegacyJson();
 			if (oldJson.Count == 0) {
 				EditorUtility.DisplayDialog("Migrate Ink Project from 1.x",
 					"No leftover compiled ink .json files were found — nothing to delete.\n\n" + codeReminder, "OK");
@@ -43,6 +46,13 @@ namespace Ink.UnityIntegration {
 				AssetDatabase.StopAssetEditing();
 			}
 			Debug.Log($"Ink migration: deleted {oldJson.Count} old compiled .json file(s):\n{string.Join("\n", oldJson)}\n\n{codeReminder}");
+		}
+
+		static List<string> FindLegacyJson () {
+			return AssetDatabase.FindAssets("t:TextAsset")
+				.Select(AssetDatabase.GUIDToAssetPath)
+				.Where(p => p.EndsWith(".json") && IsCompiledInkJson(p))
+				.ToList();
 		}
 
 		// A compiled ink story JSON begins with an "inkVersion" field, so we only need to sniff the start.

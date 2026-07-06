@@ -40,6 +40,13 @@ namespace Ink.UnityIntegration {
 			var defineProp = settings.FindProperty("automaticallyAddDefineSymbols");
 			root.Add(new PropertyField(defineProp, "Add define symbols") { tooltip = "Automatically adds INK_EDITOR and INK_RUNTIME to the scripting define symbols." });
 
+			// Only shown while there are leftover 1.x .json files to clean up; disappears once migrated.
+			if (InkMigrationTool.HasLegacyJson()) {
+				root.Add(Header("1.x Migration"));
+				root.Add(new HelpBox("This project has compiled .json files from ink 1.x that are no longer used.", HelpBoxMessageType.Info));
+				root.Add(new Button(InkMigrationTool.Migrate) { text = "Migrate Ink Project from 1.x" });
+			}
+
 			root.Add(Header("Support + Requests"));
 			root.Add(BuildRequestButtons());
 

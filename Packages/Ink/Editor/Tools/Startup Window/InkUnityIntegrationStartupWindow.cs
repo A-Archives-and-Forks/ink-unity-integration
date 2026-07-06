@@ -61,6 +61,14 @@ namespace Ink.UnityIntegration {
 			root.Add(CenteredGrey("Version " + InkEditorUtils.unityIntegrationVersionCurrent));
 			root.Add(CenteredGrey("Ink version " + InkEditorUtils.inkVersionCurrent));
 
+			// Offer the 1.x migration only while there are leftover compiled .json files to clean up.
+			if (InkMigrationTool.HasLegacyJson()) {
+				var migrate = new VisualElement { style = { marginTop = 8 } };
+				migrate.Add(new HelpBox("This project has compiled .json files from ink 1.x that are no longer used.", HelpBoxMessageType.Info));
+				migrate.Add(new Button(InkMigrationTool.Migrate) { text = "Migrate Ink Project from 1.x" });
+				root.Add(migrate);
+			}
+
 			if (announcementVersionPreviouslySeen == -1) {
 				var newToInk = new Label("New to ink?");
 				newToInk.style.unityFontStyleAndWeight = FontStyle.Bold;
