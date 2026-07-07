@@ -31,7 +31,7 @@ Best if you want to edit the source, or don't have git installed. This imports t
 * Open the downloaded file to import it into your Unity project.
 
 ### From GitHub
-Clone or fork the [GitHub repo](https://github.com/inkle/ink-unity-integration) if you want to work from or contribute to the source. To just install the latest version, use the git URL as described in [Via the Package Manager](#via-the-package-manager-recommended) above; to embed an editable copy, move the `Packages/com.inkle.ink-unity-integration` folder into your own project's `Packages` folder.
+Clone or fork the [GitHub repo](https://github.com/inkle/ink-unity-integration) if you want to work from or contribute to the source. To just install the latest version, use the git URL as described in [Via the Package Manager](#via-the-package-manager) above; to embed an editable copy, move the `Packages/com.inkle.ink-unity-integration` folder into your own project's `Packages` folder.
 
 ### Via the Asset Store
 For convenience a .UnityPackage is hosted at the [Unity Asset Store](https://assetstore.unity.com/packages/tools/integration/ink-unity-integration-60055). **This version is updated rarely, and so is not recommended.**
