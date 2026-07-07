@@ -99,14 +99,10 @@ public static class PublishingTools {
 
 	[MenuItem("Publishing/Tasks/Create .unitypackage")]
 	public static void CreatePackage () {
-		EditorApplication.LockReloadAssemblies();
-		// #if UNITY_2019_4_OR_NEWER
-		// AssetDatabase.DisallowAutoRefresh();
-		// #endif
 		var assetsInkPath = Path.Combine(Application.dataPath, "Ink");
 		var copiedFiles = new List<(string packagesFile, string assetsFile)>();
 		var copiedDirectories = new List<(DirectoryInfo packagesDirectory, DirectoryInfo assetsDirectory)>();
-		
+
 		// Work out which files need to be copied into Assets for the Package
 		var files = Directory.GetFiles(IntegrationPath);
 		foreach (var filePath in files) {
@@ -116,7 +112,7 @@ public static class PublishingTools {
 			if(fileName == "package.json") continue;
 			copiedFiles.Add((filePath, Path.Combine(assetsInkPath, fileName)));
 		}
-		
+
 		var integrationDirs = Directory.GetDirectories(IntegrationPath);
 		foreach(var dir in integrationDirs) {
 			var dirName = Path.GetFileName(dir);
@@ -124,30 +120,33 @@ public static class PublishingTools {
 			copiedDirectories.Add((new DirectoryInfo(dir), new DirectoryInfo(Path.Combine(assetsInkPath, dirName))));
 		}
 
-		// Move files from Packages into Assets
-		foreach(var rootPath in copiedFiles) 
-			new FileInfo(rootPath.packagesFile).MoveTo(rootPath.assetsFile);
-		foreach(var rootPath in copiedDirectories)
-			MoveFilesRecursively(rootPath.packagesDirectory, rootPath.assetsDirectory);
-		
-		// I believe this creates meta files but I can't recall!
-		AssetDatabase.Refresh();
+		// Lock reloads so moving the package's scripts into Assets doesn't trigger a domain reload mid-export.
+		// The finally always moves everything back and unlocks, so a failure can't leave the editor stuck with
+		// reloads disabled or files stranded in Assets (this is what the old manual "Unlock" button was for).
+		EditorApplication.LockReloadAssemblies();
+		try {
+			// Move files from Packages into Assets
+			foreach(var rootPath in copiedFiles)
+				new FileInfo(rootPath.packagesFile).MoveTo(rootPath.assetsFile);
+			foreach(var rootPath in copiedDirectories)
+				MoveFilesRecursively(rootPath.packagesDirectory, rootPath.assetsDirectory);
+			AssetDatabase.Refresh();
 
-		// Create a .unitypackage
-		var version = InkLibrary.unityIntegrationVersionCurrent;
-		var packageExportPath = string.Format("../Ink Unity Integration {0}.{1}.{2}.unitypackage", version.Major, version.Minor, version.Build);
-		AssetDatabase.ExportPackage("Assets/Ink", packageExportPath, ExportPackageOptions.Recurse);
-		
-		// Move files back to Packages
-		foreach (var rootPath in copiedFiles)
-			new FileInfo(rootPath.assetsFile).MoveTo(rootPath.packagesFile);
-		foreach(var rootPath in copiedDirectories) 
-			MoveFilesRecursively(rootPath.assetsDirectory, rootPath.packagesDirectory);
-		
-		EditorApplication.UnlockReloadAssemblies();
-		AssetDatabase.Refresh();
-		CompilationPipeline.RequestScriptCompilation();
-		Debug.Log("PublishingTools.CreatePackage: Created .unitypackage at "+Path.GetFullPath(Path.Combine(Application.dataPath, packageExportPath)));
+			// Create a .unitypackage
+			var version = InkLibrary.unityIntegrationVersionCurrent;
+			var packageExportPath = string.Format("../Ink Unity Integration {0}.{1}.{2}.unitypackage", version.Major, version.Minor, version.Build);
+			AssetDatabase.ExportPackage("Assets/Ink", packageExportPath, ExportPackageOptions.Recurse);
+			Debug.Log("PublishingTools.CreatePackage: Created .unitypackage at "+Path.GetFullPath(Path.Combine(Application.dataPath, packageExportPath)));
+		} finally {
+			// Always move everything back to Packages; guarded so a partial move on failure still restores what moved.
+			foreach (var rootPath in copiedFiles)
+				if (File.Exists(rootPath.assetsFile)) new FileInfo(rootPath.assetsFile).MoveTo(rootPath.packagesFile);
+			foreach(var rootPath in copiedDirectories)
+				if (Directory.Exists(rootPath.assetsDirectory.FullName)) MoveFilesRecursively(rootPath.assetsDirectory, rootPath.packagesDirectory);
+			EditorApplication.UnlockReloadAssemblies();
+			AssetDatabase.Refresh();
+			CompilationPipeline.RequestScriptCompilation();
+		}
 	}
 	
 	
@@ -168,9 +167,6 @@ public static class PublishingTools {
 			EditorGUILayout.BeginVertical();
 			EditorGUILayout.LabelField("Version "+InkLibrary.unityIntegrationVersionCurrent, EditorStyles.centeredGreyMiniLabel);
 		
-			if (GUILayout.Button("Unlock")) {
-				EditorApplication.UnlockReloadAssemblies();
-			}
 			if (GUILayout.Button("Prepare for publishing (run all tasks)")) {
 				PreparePublish();
 			}
