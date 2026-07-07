@@ -6,7 +6,7 @@ Demos are packaged up as separate .unitypackage files.
 
 ## Which Unity version to package from
 Do the packaging from the **minimum supported Unity version** — the `unity` field in
-`Packages/Ink/package.json` (currently **2022.3 LTS**) — not a newer editor.
+`Packages/com.inkle.ink-unity-integration/package.json` (currently **2022.3 LTS**) — not a newer editor.
 
 - The **`.unitypackage`** (produced by "Prepare for publishing", then both attached to the GitHub
   release and uploaded to the Asset Store — it's the same file) ships serialized assets: the demo
@@ -22,7 +22,7 @@ Do the packaging from the **minimum supported Unity version** — the `unity` fi
 
 ## To update create a new release
 - Update CHANGELOG.md with a list of changes (these will then autopopulate)
-- Increase the version number in InkLibrary.cs
+- Increase the version number in InkEditorUtils.cs (unityIntegrationVersionCurrent)
 - Open the Ink Publishing Tools wizard with the 'Publishing/Show Helper Window' menu item
 - Click 'Prepare for publishing'. This will run a bunch of automated tasks and produce a .UnityPackage which we'll need later. **Do this from the minimum supported Unity version — see "Which Unity version to package from" above.**
 - You can click the 'Show Package' button to reveal the packages in Finder
