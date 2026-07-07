@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.inkle.ink-unity-integration": {
-      "version": "file:Ink",
+      "version": "file:com.inkle.ink-unity-integration",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
