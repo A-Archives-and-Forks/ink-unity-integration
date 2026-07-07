@@ -12,7 +12,7 @@ using UnityEngine.Networking;
 // Should be run to update files in the package folder from the root of the repo, and to create demo and release packages.
 public static class PublishingTools {
 	static string AssetsParentDirectory => Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-	static string IntegrationPath => Path.GetFullPath(Path.Combine(AssetsParentDirectory, "Packages", "Ink"));
+	static string IntegrationPath => Path.GetFullPath(Path.Combine(AssetsParentDirectory, "Packages", "com.inkle.ink-unity-integration"));
 
 	[MenuItem("Publishing/Prepare for publishing (run all tasks)", false, 1)]
 	public static void PreparePublish() {
@@ -51,7 +51,7 @@ public static class PublishingTools {
 		var prevVersion = match.Groups[1].Value;
 		var nextVersion = InkEditorUtils.unityIntegrationVersionCurrent.ToString();
 		if (prevVersion == nextVersion) {
-			Debug.LogWarning("SyncPackageJsonVersion: package.json version was already " + nextVersion + ". Did you forget to update it in InkLibrary?");
+			Debug.LogWarning("SyncPackageJsonVersion: package.json version was already " + nextVersion + ". Did you forget to update it in InkEditorUtils?");
 		} else {
 			json = Regex.Replace(
 				json,
